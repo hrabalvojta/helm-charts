@@ -22,6 +22,6 @@ entries:
     - https://github.com/gchq/CyberChef
     type: application
     urls:
-    - https://hrabalvojta.github.io/helm-charts/cyberchef-0.1.11.tgz
+    - https://hrabalvojta.github.io/helm-charts/charts/cyberchef-0.1.11.tgz
     version: 0.1.11
 generated: "2026-03-30T22:54:21.790663824Z"
