@@ -172,11 +172,17 @@ jobs:
 
           validate_template_render() {
             local chart_dir="$1"
+            local release_name
+
+            release_name="$(basename "${chart_dir}" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9-.' '-')"
+            release_name="validate-${release_name}"
+            release_name="${release_name#-}"
+            release_name="${release_name%-}"
 
             helm dependency build "${chart_dir}"
             helm lint "${chart_dir}"
 
-            helm template "__validation__" "${chart_dir}" \
+            helm template "${release_name}" "${chart_dir}" \
               --include-crds \
               >/dev/null
           }
