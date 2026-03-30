@@ -1,4 +1,4 @@
-name: publish-helm-oci
+name: publish-helm-oci-and-pages
 
 on:
   push:
@@ -6,16 +6,18 @@ on:
       - main
     paths:
       - "charts/**"
-      - ".github/workflows/publish-helm-oci.yaml"
+      - "artifacthub-repo.yml"
+      - ".github/workflows/publish-helm-oci-and-pages.yaml"
   workflow_dispatch:
 
 permissions:
   contents: read
   packages: write
   id-token: write
+  pages: write
 
 concurrency:
-  group: publish-helm-oci-${{ github.ref }}
+  group: publish-helm-${{ github.ref }}
   cancel-in-progress: false
 
 env:
@@ -24,10 +26,14 @@ env:
   OCI_NAMESPACE: ${{ github.repository_owner }}/helm-charts
   CHARTS_ROOT: charts
   HELM_DOCS_VERSION: v1.14.2
+  PAGES_DIR: _site
+  PAGES_BRANCH: gh-pages
 
 jobs:
   publish:
     runs-on: ubuntu-latest
+    outputs:
+      any_changed: ${{ steps.publish.outputs.any_changed }}
 
     steps:
       - name: Checkout
@@ -87,14 +93,16 @@ jobs:
             --username "${{ github.actor }}" \
             --password-stdin
 
-      - name: Detect, validate, package, publish, sign, and verify changed charts
+      - name: Detect, validate, package, publish, sign, verify, and build persistent Pages repo
+        id: publish
         shell: bash
         run: |
           set -euo pipefail
 
           DIST_DIR="${RUNNER_TEMP}/chart-dist"
           REGISTRY_CHECK_DIR="${RUNNER_TEMP}/registry-check"
-          mkdir -p "${DIST_DIR}" "${REGISTRY_CHECK_DIR}"
+          PREV_PAGES_DIR="${RUNNER_TEMP}/previous-pages"
+          mkdir -p "${DIST_DIR}" "${REGISTRY_CHECK_DIR}" "${PAGES_DIR}" "${PREV_PAGES_DIR}"
 
           fail() {
             echo "ERROR: $*" >&2
@@ -227,7 +235,6 @@ jobs:
 
           sign_chart() {
             local oci_ref="$1"
-
             COSIGN_YES=true cosign sign "${oci_ref}"
           }
 
@@ -249,7 +256,7 @@ jobs:
             [ -f "${pkg}" ] || fail "Expected package not found: ${pkg}"
 
             if chart_exists_in_registry "${chart_name}" "${chart_version}"; then
-              echo "SKIP: ${chart_name}:${chart_version} already exists in GHCR"
+              echo "SKIP OCI: ${chart_name}:${chart_version} already exists in GHCR"
               return 0
             fi
 
@@ -267,12 +274,62 @@ jobs:
             echo "PUBLISHED AND SIGNED: ${oci_ref}"
           }
 
+          fetch_previous_pages_repo() {
+            local pages_url
+
+            pages_url="https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+
+            if git ls-remote --exit-code --heads "${pages_url}" "${PAGES_BRANCH}" >/dev/null 2>&1; then
+              git clone --depth 1 --branch "${PAGES_BRANCH}" "${pages_url}" "${PREV_PAGES_DIR}" >/dev/null 2>&1 || \
+                fail "Failed to clone existing ${PAGES_BRANCH} branch"
+              echo "INFO: Existing ${PAGES_BRANCH} branch cloned"
+            else
+              echo "INFO: ${PAGES_BRANCH} branch does not exist yet; starting fresh"
+            fi
+          }
+
+          build_pages_repo() {
+            local repo_url
+
+            repo_url="https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_EVENT_REPOSITORY_NAME}"
+
+            fetch_previous_pages_repo
+
+            if [ -d "${PREV_PAGES_DIR}/.git" ]; then
+              find "${PREV_PAGES_DIR}" -maxdepth 1 -type f -name '*.tgz' -exec cp -f {} "${PAGES_DIR}/" \;
+
+              if [ -f "${PREV_PAGES_DIR}/artifacthub-repo.yml" ]; then
+                cp -f "${PREV_PAGES_DIR}/artifacthub-repo.yml" "${PAGES_DIR}/artifacthub-repo.yml"
+              fi
+
+              if [ -f "${PREV_PAGES_DIR}/index.yaml" ]; then
+                cp -f "${PREV_PAGES_DIR}/index.yaml" "${PAGES_DIR}/index.yaml"
+              fi
+            fi
+
+            find "${DIST_DIR}" -maxdepth 1 -type f -name '*.tgz' -exec cp -f {} "${PAGES_DIR}/" \;
+
+            if [ -f artifacthub-repo.yml ]; then
+              cp -f artifacthub-repo.yml "${PAGES_DIR}/artifacthub-repo.yml"
+            fi
+
+            if [ -f "${PAGES_DIR}/index.yaml" ]; then
+              helm repo index "${PAGES_DIR}" \
+                --url "${repo_url}" \
+                --merge "${PAGES_DIR}/index.yaml"
+            else
+              helm repo index "${PAGES_DIR}" \
+                --url "${repo_url}"
+            fi
+
+            touch "${PAGES_DIR}/.nojekyll"
+          }
+
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             mapfile -t CHANGED_CHARTS < <(list_all_local_charts)
             BASE_REF=""
           else
             BASE_REF="${{ github.event.before }}"
-
             if [ -z "${BASE_REF}" ] || [ "${BASE_REF}" = "0000000000000000000000000000000000000000" ]; then
               mapfile -t CHANGED_CHARTS < <(list_all_local_charts)
             else
@@ -282,6 +339,7 @@ jobs:
 
           if [ "${#CHANGED_CHARTS[@]}" -eq 0 ]; then
             echo "No changed charts detected"
+            echo "any_changed=false" >> "${GITHUB_OUTPUT}"
             exit 0
           fi
 
@@ -308,3 +366,31 @@ jobs:
             package_chart "${chart_dir}"
             publish_chart "${chart_name}" "${chart_version}"
           done
+
+          build_pages_repo
+
+          echo "any_changed=true" >> "${GITHUB_OUTPUT}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Pages artifact
+        if: steps.publish.outputs.any_changed == 'true'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ env.PAGES_DIR }}
+
+  deploy-pages:
+    needs: publish
+    if: needs.publish.outputs.any_changed == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      pages: write
+      id-token: write
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
