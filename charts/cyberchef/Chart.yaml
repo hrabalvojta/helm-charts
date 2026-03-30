@@ -10,7 +10,7 @@ keywords:
 - cyberchef
 - security
 type: application
-version: 0.1.10
+version: 0.1.11
 appVersion: "v10.22.1"
 icon: https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/cyberchef.svg
 maintainers:
