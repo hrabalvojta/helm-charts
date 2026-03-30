@@ -7,7 +7,7 @@ on:
     paths:
       - "charts/**"
       - "artifacthub-repo.yml"
-      - ".github/workflows/*.yaml"
+      - ".github/workflows/publish-helm-oci-and-pages-branch.yaml"
   workflow_dispatch:
 
 permissions:
@@ -27,6 +27,7 @@ env:
   HELM_DOCS_VERSION: v1.14.2
   PAGES_BRANCH: gh-pages
   PAGES_DIR: _site
+  PAGES_CHARTS_DIR: _site/charts
 
 jobs:
   publish:
@@ -100,7 +101,7 @@ jobs:
           DIST_DIR="${RUNNER_TEMP}/chart-dist"
           REGISTRY_CHECK_DIR="${RUNNER_TEMP}/registry-check"
           PREV_PAGES_DIR="${RUNNER_TEMP}/previous-pages"
-          mkdir -p "${DIST_DIR}" "${REGISTRY_CHECK_DIR}" "${PAGES_DIR}" "${PREV_PAGES_DIR}"
+          mkdir -p "${DIST_DIR}" "${REGISTRY_CHECK_DIR}" "${PAGES_DIR}" "${PAGES_CHARTS_DIR}" "${PREV_PAGES_DIR}"
 
           fail() {
             echo "ERROR: $*" >&2
@@ -291,14 +292,17 @@ jobs:
           build_pages_repo() {
             local repo_name
             local repo_url
+            local merged_index_tmp
 
             repo_name="${GITHUB_REPOSITORY#*/}"
             repo_url="https://${GITHUB_REPOSITORY_OWNER}.github.io/${repo_name}"
 
             fetch_previous_pages_repo
 
+            mkdir -p "${PAGES_DIR}" "${PAGES_CHARTS_DIR}"
+
             if [ -d "${PREV_PAGES_DIR}/.git" ]; then
-              find "${PREV_PAGES_DIR}" -maxdepth 1 -type f -name '*.tgz' -exec cp -f {} "${PAGES_DIR}/" \;
+              find "${PREV_PAGES_DIR}/charts" -maxdepth 1 -type f -name '*.tgz' -exec cp -f {} "${PAGES_CHARTS_DIR}/" \; 2>/dev/null || true
 
               if [ -f "${PREV_PAGES_DIR}/artifacthub-repo.yml" ]; then
                 cp -f "${PREV_PAGES_DIR}/artifacthub-repo.yml" "${PAGES_DIR}/artifacthub-repo.yml"
@@ -309,29 +313,34 @@ jobs:
               fi
             fi
 
-            find "${DIST_DIR}" -maxdepth 1 -type f -name '*.tgz' -exec cp -f {} "${PAGES_DIR}/" \;
+            find "${DIST_DIR}" -maxdepth 1 -type f -name '*.tgz' -exec cp -f {} "${PAGES_CHARTS_DIR}/" \;
 
             if [ -f artifacthub-repo.yml ]; then
               cp -f artifacthub-repo.yml "${PAGES_DIR}/artifacthub-repo.yml"
             fi
 
+            merged_index_tmp="$(mktemp)"
+
             if [ -f "${PAGES_DIR}/index.yaml" ]; then
-              helm repo index "${PAGES_DIR}" \
-                --url "${repo_url}" \
+              helm repo index "${PAGES_CHARTS_DIR}" \
+                --url "${repo_url}/charts" \
                 --merge "${PAGES_DIR}/index.yaml"
+
+              mv "${PAGES_CHARTS_DIR}/index.yaml" "${merged_index_tmp}"
+              mv "${merged_index_tmp}" "${PAGES_DIR}/index.yaml"
             else
-              helm repo index "${PAGES_DIR}" \
-                --url "${repo_url}"
+              helm repo index "${PAGES_CHARTS_DIR}" \
+                --url "${repo_url}/charts"
+
+              mv "${PAGES_CHARTS_DIR}/index.yaml" "${PAGES_DIR}/index.yaml"
             fi
 
             touch "${PAGES_DIR}/.nojekyll"
           }
 
           publish_pages_branch() {
-            local repo_name
             local pages_url
 
-            repo_name="${GITHUB_REPOSITORY#*/}"
             pages_url="https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
 
             rm -rf "${PREV_PAGES_DIR}"
