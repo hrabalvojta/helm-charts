@@ -377,7 +377,7 @@ jobs:
 
       - name: Upload Pages artifact
         if: steps.publish.outputs.any_changed == 'true'
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v4
         with:
           path: ${{ env.PAGES_DIR }}
 
@@ -395,4 +395,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
