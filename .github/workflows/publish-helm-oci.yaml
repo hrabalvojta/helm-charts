@@ -1,4 +1,4 @@
-name: publish-helm-oci-and-pages
+name: publish-helm-oci-and-pages-branch
 
 on:
   push:
@@ -7,14 +7,13 @@ on:
     paths:
       - "charts/**"
       - "artifacthub-repo.yml"
-      - ".github/workflows/publish-helm-oci-and-pages.yaml"
+      - ".github/workflows/*.yaml"
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   packages: write
   id-token: write
-  pages: write
 
 concurrency:
   group: publish-helm-${{ github.ref }}
@@ -26,17 +25,15 @@ env:
   OCI_NAMESPACE: ${{ github.repository_owner }}/helm-charts
   CHARTS_ROOT: charts
   HELM_DOCS_VERSION: v1.14.2
-  PAGES_DIR: _site
   PAGES_BRANCH: gh-pages
+  PAGES_DIR: _site
 
 jobs:
   publish:
     runs-on: ubuntu-latest
-    outputs:
-      any_changed: ${{ steps.publish.outputs.any_changed }}
 
     steps:
-      - name: Checkout
+      - name: Checkout source
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
@@ -93,9 +90,10 @@ jobs:
             --username "${{ github.actor }}" \
             --password-stdin
 
-      - name: Detect, validate, package, publish, sign, verify, and build persistent Pages repo
-        id: publish
+      - name: Detect, validate, package, publish, sign, verify, and update gh-pages
         shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
 
@@ -251,7 +249,9 @@ jobs:
             local chart_name="$1"
             local chart_version="$2"
             local pkg="${DIST_DIR}/${chart_name}-${chart_version}.tgz"
-            local push_output digest oci_ref
+            local push_output
+            local digest
+            local oci_ref
 
             [ -f "${pkg}" ] || fail "Expected package not found: ${pkg}"
 
@@ -274,7 +274,6 @@ jobs:
             echo "PUBLISHED AND SIGNED: ${oci_ref}"
           }
 
-
           fetch_previous_pages_repo() {
             local pages_url
 
@@ -290,11 +289,12 @@ jobs:
           }
 
           build_pages_repo() {
+            local repo_name
             local repo_url
 
             repo_name="${GITHUB_REPOSITORY#*/}"
             repo_url="https://${GITHUB_REPOSITORY_OWNER}.github.io/${repo_name}"
-            
+
             fetch_previous_pages_repo
 
             if [ -d "${PREV_PAGES_DIR}/.git" ]; then
@@ -327,6 +327,42 @@ jobs:
             touch "${PAGES_DIR}/.nojekyll"
           }
 
+          publish_pages_branch() {
+            local repo_name
+            local pages_url
+
+            repo_name="${GITHUB_REPOSITORY#*/}"
+            pages_url="https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+
+            rm -rf "${PREV_PAGES_DIR}"
+            git clone "${pages_url}" "${PREV_PAGES_DIR}" >/dev/null 2>&1 || fail "Failed to clone repo for publishing gh-pages"
+
+            cd "${PREV_PAGES_DIR}"
+
+            if git show-ref --verify --quiet "refs/remotes/origin/${PAGES_BRANCH}"; then
+              git checkout -B "${PAGES_BRANCH}" "origin/${PAGES_BRANCH}"
+            else
+              git checkout --orphan "${PAGES_BRANCH}"
+              find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+            fi
+
+            find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+            cp -a "${GITHUB_WORKSPACE}/${PAGES_DIR}/." .
+
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+            git add .
+
+            if git diff --cached --quiet; then
+              echo "INFO: No changes to publish to ${PAGES_BRANCH}"
+              return 0
+            fi
+
+            git commit -m "Publish Helm repository"
+            git push origin "${PAGES_BRANCH}"
+          }
+
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             mapfile -t CHANGED_CHARTS < <(list_all_local_charts)
             BASE_REF=""
@@ -341,7 +377,6 @@ jobs:
 
           if [ "${#CHANGED_CHARTS[@]}" -eq 0 ]; then
             echo "No changed charts detected"
-            echo "any_changed=false" >> "${GITHUB_OUTPUT}"
             exit 0
           fi
 
@@ -370,29 +405,4 @@ jobs:
           done
 
           build_pages_repo
-
-          echo "any_changed=true" >> "${GITHUB_OUTPUT}"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload Pages artifact
-        if: steps.publish.outputs.any_changed == 'true'
-        uses: actions/upload-pages-artifact@v4
-        with:
-          path: ${{ env.PAGES_DIR }}
-
-  deploy-pages:
-    needs: publish
-    if: needs.publish.outputs.any_changed == 'true'
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    permissions:
-      pages: write
-      id-token: write
-
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v5
+          publish_pages_branch
