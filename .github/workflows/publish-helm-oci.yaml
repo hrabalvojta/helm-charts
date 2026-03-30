@@ -1,0 +1,246 @@
+name: publish-helm-oci
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "charts/**"
+      - ".github/workflows/publish-helm-oci.yaml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: publish-helm-oci-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  OCI_NAMESPACE: ${{ github.repository_owner }}/helm-charts
+  CHARTS_ROOT: charts
+  HELM_DOCS_VERSION: v1.14.2
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+
+      - name: Install helm-docs
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          arch="$(uname -m)"
+          case "${arch}" in
+            x86_64|amd64) arch="x86_64" ;;
+            aarch64|arm64) arch="arm64" ;;
+            *)
+              echo "Unsupported architecture: ${arch}" >&2
+              exit 1
+              ;;
+          esac
+
+          os="$(uname -s | tr '[:upper:]' '[:lower:]')"
+          tmpdir="$(mktemp -d)"
+          trap 'rm -rf "${tmpdir}"' EXIT
+
+          url="https://github.com/norwoodj/helm-docs/releases/download/${HELM_DOCS_VERSION}/helm-docs_${HELM_DOCS_VERSION#v}_${os}_${arch}.tar.gz"
+
+          curl -fsSL "${url}" -o "${tmpdir}/helm-docs.tgz"
+          tar -xzf "${tmpdir}/helm-docs.tgz" -C "${tmpdir}"
+          install -m 0755 "${tmpdir}/helm-docs" /usr/local/bin/helm-docs
+
+          helm-docs --version
+
+      - name: Login to GHCR
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login "${REGISTRY}" \
+            --username "${{ github.actor }}" \
+            --password-stdin
+
+      - name: Detect, validate, package, and publish changed charts
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          DIST_DIR="${RUNNER_TEMP}/chart-dist"
+          REGISTRY_CHECK_DIR="${RUNNER_TEMP}/registry-check"
+          mkdir -p "${DIST_DIR}" "${REGISTRY_CHECK_DIR}"
+
+          fail() {
+            echo "ERROR: $*" >&2
+            exit 1
+          }
+
+          chart_yaml_value() {
+            local file="$1"
+            local key="$2"
+
+            awk -F': *' -v k="$key" '
+              $1 == k {
+                v = $2
+                sub(/[[:space:]]+#.*$/, "", v)
+                gsub(/^["'"'"']|["'"'"']$/, "", v)
+                print v
+                exit
+              }
+            ' "$file"
+          }
+
+          semver_like() {
+            case "$1" in
+              '' ) return 1 ;;
+              *[!0-9A-Za-z.+-]* ) return 1 ;;
+              * ) return 0 ;;
+            esac
+          }
+
+          list_all_local_charts() {
+            find "${CHARTS_ROOT}" -mindepth 1 -maxdepth 1 -type d | while read -r dir; do
+              [ -f "${dir}/Chart.yaml" ] && printf '%s\n' "${dir}"
+            done | sort -u
+          }
+
+          list_changed_charts_from_range() {
+            local base="$1"
+            local head="$2"
+
+            git diff --name-only "${base}" "${head}" -- "${CHARTS_ROOT}/" | \
+            while read -r path; do
+              [ -n "${path}" ] || continue
+              chart_dir="$(printf '%s\n' "${path}" | cut -d/ -f1-2)"
+              [ -f "${chart_dir}/Chart.yaml" ] && printf '%s\n' "${chart_dir}"
+            done | sort -u
+          }
+
+          compare_chart_version_with_base() {
+            local chart_dir="$1"
+            local base_ref="$2"
+            local current_version="$3"
+            local rel previous_version tmp
+
+            rel="${chart_dir}/Chart.yaml"
+
+            if git cat-file -e "${base_ref}:${rel}" 2>/dev/null; then
+              tmp="$(mktemp)"
+              git show "${base_ref}:${rel}" > "${tmp}"
+              previous_version="$(chart_yaml_value "${tmp}" version || true)"
+              rm -f "${tmp}"
+
+              [ -n "${previous_version}" ] || fail "Cannot read previous version from ${base_ref}:${rel}"
+
+              if [ "${previous_version}" = "${current_version}" ]; then
+                fail "${chart_dir} changed but version was not bumped (still ${current_version})"
+              fi
+            fi
+          }
+
+          chart_exists_in_registry() {
+            local chart_name="$1"
+            local chart_version="$2"
+
+            helm pull "oci://${REGISTRY}/${OCI_NAMESPACE}/${chart_name}" \
+              --version "${chart_version}" \
+              --destination "${REGISTRY_CHECK_DIR}" \
+              >/dev/null 2>&1
+          }
+
+          validate_helm_docs() {
+            local chart_dir="$1"
+
+            if [ -f "${chart_dir}/README.md.gotmpl" ] || [ -f "${chart_dir}/README.md" ]; then
+              helm-docs --chart-search-root "${chart_dir}"
+              git diff --exit-code -- "${chart_dir}/README.md" >/dev/null || \
+                fail "helm-docs validation failed for ${chart_dir}; commit regenerated README.md"
+            else
+              echo "INFO: ${chart_dir} has no README.md/README.md.gotmpl; skipping helm-docs validation"
+            fi
+          }
+
+          validate_template_render() {
+            local chart_dir="$1"
+
+            helm dependency build "${chart_dir}"
+            helm lint "${chart_dir}"
+
+            helm template "__validation__" "${chart_dir}" \
+              --include-crds \
+              >/dev/null
+          }
+
+          package_chart() {
+            local chart_dir="$1"
+
+            helm package "${chart_dir}" --destination "${DIST_DIR}" >/dev/null
+          }
+
+          publish_chart() {
+            local chart_name="$1"
+            local chart_version="$2"
+            local pkg="${DIST_DIR}/${chart_name}-${chart_version}.tgz"
+
+            [ -f "${pkg}" ] || fail "Expected package not found: ${pkg}"
+
+            if chart_exists_in_registry "${chart_name}" "${chart_version}"; then
+              echo "SKIP: ${chart_name}:${chart_version} already exists in GHCR"
+              return 0
+            fi
+
+            helm push "${pkg}" "oci://${REGISTRY}/${OCI_NAMESPACE}"
+            echo "PUBLISHED: ${chart_name}:${chart_version}"
+          }
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            mapfile -t CHANGED_CHARTS < <(list_all_local_charts)
+            BASE_REF=""
+          else
+            BASE_REF="${{ github.event.before }}"
+
+            if [ -z "${BASE_REF}" ] || [ "${BASE_REF}" = "0000000000000000000000000000000000000000" ]; then
+              mapfile -t CHANGED_CHARTS < <(list_all_local_charts)
+            else
+              mapfile -t CHANGED_CHARTS < <(list_changed_charts_from_range "${BASE_REF}" "${GITHUB_SHA}")
+            fi
+          fi
+
+          if [ "${#CHANGED_CHARTS[@]}" -eq 0 ]; then
+            echo "No changed charts detected"
+            exit 0
+          fi
+
+          echo "Changed charts:"
+          printf ' - %s\n' "${CHANGED_CHARTS[@]}"
+
+          for chart_dir in "${CHANGED_CHARTS[@]}"; do
+            chart_file="${chart_dir}/Chart.yaml"
+            [ -f "${chart_file}" ] || fail "Missing Chart.yaml in ${chart_dir}"
+
+            chart_name="$(chart_yaml_value "${chart_file}" name || true)"
+            chart_version="$(chart_yaml_value "${chart_file}" version || true)"
+
+            [ -n "${chart_name}" ] || fail "Missing name in ${chart_file}"
+            [ -n "${chart_version}" ] || fail "Missing version in ${chart_file}"
+            semver_like "${chart_version}" || fail "Version in ${chart_file} looks invalid: ${chart_version}"
+
+            if [ -n "${BASE_REF}" ] && [ "${BASE_REF}" != "0000000000000000000000000000000000000000" ]; then
+              compare_chart_version_with_base "${chart_dir}" "${BASE_REF}" "${chart_version}"
+            fi
+
+            validate_helm_docs "${chart_dir}"
+            validate_template_render "${chart_dir}"
+            package_chart "${chart_dir}"
+            publish_chart "${chart_name}" "${chart_version}"
+          done
