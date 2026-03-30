@@ -29,12 +29,12 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Setup Helm
-        uses: azure/setup-helm@v4
+        uses: azure/setup-helm@v5
 
       - name: Install helm-docs
         shell: bash
