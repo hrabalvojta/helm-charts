@@ -38,10 +38,17 @@ jobs:
       - name: Setup Helm
         uses: azure/setup-helm@v5.0.0
         with:
-          version: v4.1.3
+          version: v3.19.0
 
       - name: Install Cosign
         uses: sigstore/cosign-installer@v4.1.1
+
+      - name: Login to GHCR for OCI tools
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install helm-docs
         shell: bash
@@ -72,7 +79,7 @@ jobs:
           cosign version
           helm-docs --version
 
-      - name: Login to GHCR
+      - name: Login to GHCR for Helm
         shell: bash
         run: |
           set -euo pipefail
@@ -80,7 +87,7 @@ jobs:
             --username "${{ github.actor }}" \
             --password-stdin
 
-      - name: Detect, validate, package, sign, and publish changed charts
+      - name: Detect, validate, package, publish, sign, and verify changed charts
         shell: bash
         run: |
           set -euo pipefail
@@ -219,28 +226,25 @@ jobs:
           }
 
           sign_chart() {
-            local chart_name="$1"
-            local chart_version="$2"
-            local ref="${REGISTRY}/${OCI_NAMESPACE}/${chart_name}:${chart_version}"
+            local oci_ref="$1"
 
-            COSIGN_YES=true cosign sign "${ref}"
+            COSIGN_YES=true cosign sign "${oci_ref}"
           }
 
           verify_chart_signature() {
-            local chart_name="$1"
-            local chart_version="$2"
-            local ref="${REGISTRY}/${OCI_NAMESPACE}/${chart_name}:${chart_version}"
+            local oci_ref="$1"
 
             cosign verify \
               --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
               --certificate-identity-regexp "https://github.com/${GITHUB_REPOSITORY}/.github/workflows/.*" \
-              "${ref}" >/dev/null
+              "${oci_ref}" >/dev/null
           }
 
           publish_chart() {
             local chart_name="$1"
             local chart_version="$2"
             local pkg="${DIST_DIR}/${chart_name}-${chart_version}.tgz"
+            local push_output digest oci_ref
 
             [ -f "${pkg}" ] || fail "Expected package not found: ${pkg}"
 
@@ -249,11 +253,18 @@ jobs:
               return 0
             fi
 
-            helm push "${pkg}" "oci://${REGISTRY}/${OCI_NAMESPACE}"
-            sign_chart "${chart_name}" "${chart_version}"
-            verify_chart_signature "${chart_name}" "${chart_version}"
+            push_output="$(helm push "${pkg}" "oci://${REGISTRY}/${OCI_NAMESPACE}" 2>&1)"
+            printf '%s\n' "${push_output}"
 
-            echo "PUBLISHED AND SIGNED: ${chart_name}:${chart_version}"
+            digest="$(printf '%s\n' "${push_output}" | awk '/^Digest:/ { print $2; exit }')"
+            [ -n "${digest}" ] || fail "Unable to parse digest from helm push output for ${chart_name}:${chart_version}"
+
+            oci_ref="${REGISTRY}/${OCI_NAMESPACE}/${chart_name}@${digest}"
+
+            sign_chart "${oci_ref}"
+            verify_chart_signature "${oci_ref}"
+
+            echo "PUBLISHED AND SIGNED: ${oci_ref}"
           }
 
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
