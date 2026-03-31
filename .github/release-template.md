@@ -13,6 +13,8 @@
 | Release date | `{{RELEASE_DATE}}` |
 | Previous release | `{{PREVIOUS_TAG}}` |
 | Compare | {{COMPARE_URL}} |
+| OCI digest | `{{OCI_DIGEST}}` |
+| Package SHA256 | `{{PACKAGE_SHA256}}` |
 
 {{CHART_DESCRIPTION}}
 
@@ -28,9 +30,7 @@
 
 | Asset | Purpose |
 | --- | --- |
-| [`{{HELM_PACKAGE_NAME}}`]({{HELM_PACKAGE_DOWNLOAD_URL}}) | Packaged Helm chart attached to this GitHub Release. |
-| `{{OCI_REPOSITORY}}` | OCI chart reference for `helm pull` and `helm upgrade --install`. |
-| [`{{PAGES_REPOSITORY_URL}}/index.yaml`]({{PAGES_REPOSITORY_URL}}/index.yaml) | Static Helm repository index served from `gh-pages`. |
+{{ASSET_TABLE_ROWS}}
 
 ## Install Or Upgrade
 

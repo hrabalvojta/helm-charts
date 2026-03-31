@@ -76,6 +76,10 @@ jobs:
         uses: ./.github/actions/setup-chart-tooling
         with:
           install-actionlint: "true"
+          install-gitleaks: "true"
+          install-shfmt: "true"
+          install-yamllint: "true"
+          install-yq: "true"
 
       - name: Run repository lint checks
         run: ./scripts/chart-tool.sh repo lint
@@ -91,6 +95,11 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           fetch-depth: 0
+
+      - name: Setup version policy tooling
+        uses: ./.github/actions/setup-chart-tooling
+        with:
+          install-yq: "true"
 
       - name: Enforce version bumps
         run: ./scripts/chart-tool.sh version check --base "${{ github.event.pull_request.base.sha }}" --head "${{ github.event.pull_request.head.sha }}"
@@ -113,6 +122,8 @@ jobs:
         uses: ./.github/actions/setup-chart-tooling
         with:
           install-helm: "true"
+          install-kube-score: "true"
+          install-yq: "true"
 
       - name: Audit chart metadata and render scenarios
         run: |
@@ -156,15 +167,17 @@ jobs:
         with:
           install-helm: "true"
           install-helm-docs: "true"
+          install-kube-score: "true"
+          install-yq: "true"
 
       - name: Exercise release pipeline without publishing
         run: ./scripts/chart-tool.sh release publish --dry-run --charts-json '${{ needs.detect.outputs.charts_json }}'
 
-      - name: Upload packaged charts
+      - name: Upload packaged charts and integrity assets
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
         with:
-          name: chart-packages
-          path: ${{ runner.temp }}/chart-packages/*.tgz
+          name: chart-release-assets
+          path: ${{ runner.temp }}/chart-packages/*
           if-no-files-found: error
           retention-days: 7
 
