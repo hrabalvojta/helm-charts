@@ -1,195 +1,195 @@
 {
-  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "config:recommended",
-    "docker:enableMajor",
-    "replacements:k8s-registry-move",
-    ":dependencyDashboard",
-    ":semanticCommits",
-    ":timezone(Europe/Prague)"
+  $schema: 'https://docs.renovatebot.com/renovate-schema.json',
+  extends: [
+    'config:recommended',
+    'docker:enableMajor',
+    'replacements:k8s-registry-move',
+    ':dependencyDashboard',
+    ':semanticCommits',
+    ':timezone(Europe/Prague)',
   ],
-  "schedule": [
-    "* 22-23,0-4 * * 1-5",
-    "* * * * 0,6"
+  schedule: [
+    '* 22-23,0-4 * * 1-5',
+    '* * * * 0,6',
   ],
-  "dependencyDashboardTitle": "Renovate Dashboard",
-  "labels": [
-    "dependencies"
+  dependencyDashboardTitle: 'Renovate Dashboard',
+  labels: [
+    'dependencies',
   ],
-  "lockFileMaintenance": {
-    "enabled": true
+  lockFileMaintenance: {
+    enabled: true,
   },
-  "minimumReleaseAge": "3 days",
-  "rebaseWhen": "conflicted",
-  "suppressNotifications": [
-    "prEditedNotification",
-    "prIgnoreNotification"
+  minimumReleaseAge: '3 days',
+  rebaseWhen: 'conflicted',
+  suppressNotifications: [
+    'prEditedNotification',
+    'prIgnoreNotification',
   ],
-  "customManagers": [
+  customManagers: [
     {
-      "customType": "regex",
-      "fileMatch": [
-        "(^|/)Chart\\.yaml$"
+      customType: 'regex',
+      managerFilePatterns: [
+        '/(^|/)Chart\\.yaml$/',
       ],
-      "matchStrings": [
-        "appVersion:\\s*\"(?<currentValue>[^\"]+)\"\\s+# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)"
-      ]
+      matchStrings: [
+        'appVersion:\\s*"(?<currentValue>[^"]+)"\\s+# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)',
+      ],
     },
     {
-      "customType": "regex",
-      "fileMatch": [
-        "(^|/)values\\.yaml$"
+      customType: 'regex',
+      managerFilePatterns: [
+        '/(^|/)values\\.yaml$/',
       ],
-      "matchStrings": [
-        "\\s*tag:\\s*\"(?<currentValue>[^\"]+)\"\\s+# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)"
-      ]
-    }
+      matchStrings: [
+        '\\s*tag:\\s*"(?<currentValue>[^"]+)"\\s+# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)',
+      ],
+    },
   ],
-  "packageRules": [
+  packageRules: [
     {
-      "matchManagers": [
-        "github-actions"
+      matchManagers: [
+        'github-actions',
       ],
-      "groupName": "github-actions",
-      "addLabels": [
-        "renovate/github-actions"
-      ]
+      groupName: 'github-actions',
+      addLabels: [
+        'renovate/github-actions',
+      ],
     },
     {
-      "matchDatasources": [
-        "docker"
+      matchDatasources: [
+        'docker',
       ],
-      "groupName": "container-images",
-      "addLabels": [
-        "renovate/docker"
+      groupName: 'container-images',
+      addLabels: [
+        'renovate/docker',
       ],
-      "minimumReleaseAge": null
+      minimumReleaseAge: null,
     },
     {
-      "matchManagers": [
-        "helmv3",
-        "helm-requirements"
+      matchManagers: [
+        'helmv3',
+        'helm-requirements',
       ],
-      "groupName": "helm-dependencies",
-      "addLabels": [
-        "renovate/helm"
-      ]
+      groupName: 'helm-dependencies',
+      addLabels: [
+        'renovate/helm',
+      ],
     },
     {
-      "matchUpdateTypes": [
-        "minor",
-        "patch",
-        "digest",
-        "pin",
-        "pinDigest"
+      matchUpdateTypes: [
+        'minor',
+        'patch',
+        'digest',
+        'pin',
+        'pinDigest',
       ],
-      "matchCurrentVersion": "!/^0/",
-      "automerge": true,
-      "automergeType": "pr",
-      "platformAutomerge": false
+      matchCurrentVersion: '!/^0/',
+      automerge: true,
+      automergeType: 'pr',
+      platformAutomerge: false,
     },
     {
-      "matchUpdateTypes": [
-        "major"
+      matchUpdateTypes: [
+        'major',
       ],
-      "dependencyDashboardApproval": true,
-      "labels": [
-        "type/major"
-      ]
+      dependencyDashboardApproval: true,
+      labels: [
+        'type/major',
+      ],
     },
     {
-      "matchUpdateTypes": [
-        "minor"
+      matchUpdateTypes: [
+        'minor',
       ],
-      "labels": [
-        "type/minor"
-      ]
+      labels: [
+        'type/minor',
+      ],
     },
     {
-      "matchUpdateTypes": [
-        "patch"
+      matchUpdateTypes: [
+        'patch',
       ],
-      "labels": [
-        "type/patch"
-      ]
+      labels: [
+        'type/patch',
+      ],
     },
     {
-      "matchUpdateTypes": [
-        "digest"
+      matchUpdateTypes: [
+        'digest',
       ],
-      "labels": [
-        "type/digest"
-      ]
+      labels: [
+        'type/digest',
+      ],
     },
     {
-      "matchDatasources": [
-        "docker"
+      matchDatasources: [
+        'docker',
       ],
-      "matchUpdateTypes": [
-        "major"
+      matchUpdateTypes: [
+        'major',
       ],
-      "commitMessagePrefix": "feat(container)!: ",
-      "commitMessageTopic": "{{depName}}",
-      "commitMessageExtra": "( {{currentVersion}} -> {{newVersion}} )"
+      commitMessagePrefix: 'feat(container)!: ',
+      commitMessageTopic: '{{depName}}',
+      commitMessageExtra: '( {{currentVersion}} -> {{newVersion}} )',
     },
     {
-      "matchDatasources": [
-        "docker"
+      matchDatasources: [
+        'docker',
       ],
-      "matchUpdateTypes": [
-        "minor"
+      matchUpdateTypes: [
+        'minor',
       ],
-      "semanticCommitType": "feat",
-      "semanticCommitScope": "container",
-      "commitMessageTopic": "{{depName}}",
-      "commitMessageExtra": "( {{currentVersion}} -> {{newVersion}} )"
+      semanticCommitType: 'feat',
+      semanticCommitScope: 'container',
+      commitMessageTopic: '{{depName}}',
+      commitMessageExtra: '( {{currentVersion}} -> {{newVersion}} )',
     },
     {
-      "matchDatasources": [
-        "docker"
+      matchDatasources: [
+        'docker',
       ],
-      "matchUpdateTypes": [
-        "patch"
+      matchUpdateTypes: [
+        'patch',
       ],
-      "semanticCommitType": "fix",
-      "semanticCommitScope": "container",
-      "commitMessageTopic": "{{depName}}",
-      "commitMessageExtra": "( {{currentVersion}} -> {{newVersion}} )"
+      semanticCommitType: 'fix',
+      semanticCommitScope: 'container',
+      commitMessageTopic: '{{depName}}',
+      commitMessageExtra: '( {{currentVersion}} -> {{newVersion}} )',
     },
     {
-      "matchManagers": [
-        "github-actions"
+      matchManagers: [
+        'github-actions',
       ],
-      "matchUpdateTypes": [
-        "major"
+      matchUpdateTypes: [
+        'major',
       ],
-      "commitMessagePrefix": "feat(ci)!: ",
-      "commitMessageTopic": "{{depName}}",
-      "commitMessageExtra": "( {{currentVersion}} -> {{newVersion}} )"
+      commitMessagePrefix: 'feat(ci)!: ',
+      commitMessageTopic: '{{depName}}',
+      commitMessageExtra: '( {{currentVersion}} -> {{newVersion}} )',
     },
     {
-      "matchManagers": [
-        "github-actions"
+      matchManagers: [
+        'github-actions',
       ],
-      "matchUpdateTypes": [
-        "minor"
+      matchUpdateTypes: [
+        'minor',
       ],
-      "semanticCommitType": "feat",
-      "semanticCommitScope": "ci",
-      "commitMessageTopic": "{{depName}}",
-      "commitMessageExtra": "( {{currentVersion}} -> {{newVersion}} )"
+      semanticCommitType: 'feat',
+      semanticCommitScope: 'ci',
+      commitMessageTopic: '{{depName}}',
+      commitMessageExtra: '( {{currentVersion}} -> {{newVersion}} )',
     },
     {
-      "matchManagers": [
-        "github-actions"
+      matchManagers: [
+        'github-actions',
       ],
-      "matchUpdateTypes": [
-        "patch"
+      matchUpdateTypes: [
+        'patch',
       ],
-      "semanticCommitType": "fix",
-      "semanticCommitScope": "ci",
-      "commitMessageTopic": "{{depName}}",
-      "commitMessageExtra": "( {{currentVersion}} -> {{newVersion}} )"
-    }
-  ]
+      semanticCommitType: 'fix',
+      semanticCommitScope: 'ci',
+      commitMessageTopic: '{{depName}}',
+      commitMessageExtra: '( {{currentVersion}} -> {{newVersion}} )',
+    },
+  ],
 }
