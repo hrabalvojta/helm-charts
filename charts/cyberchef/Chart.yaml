@@ -10,7 +10,8 @@ keywords:
 - cyberchef
 - security
 type: application
-version: 0.1.12
+version: 0.1.13
+# image: docker.io/mpepping/cyberchef
 appVersion: "v10.22.1"
 icon: https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/cyberchef.svg
 maintainers:
