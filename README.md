@@ -7,7 +7,7 @@ Opinionated Helm charts with strict CI, deterministic release automation, and Re
 - Validates changed charts on pull requests with repository linting, chart metadata audits, strict Helm rendering, docs verification, and a release dry-run.
 - Publishes packaged charts to GHCR as OCI artifacts.
 - Rebuilds and publishes a `gh-pages` Helm repository index after release.
-- Creates a structured GitHub Release per chart version and attaches the packaged `.tgz` as a downloadable asset.
+- Creates a structured GitHub Release per chart version and attaches the packaged `.tgz` plus integrity sidecars such as `.sha256`, `.sig`, and `.cert`.
 - Keeps chart image versions and workflow dependencies current through Renovate.
 
 ## Local Commands
@@ -31,6 +31,7 @@ GITHUB_REPOSITORY_OWNER=hrabalvojta \
 
 - [`ci.yaml`](./.github/workflows/ci.yaml) is the pull request gate. It is the stable check to require in branch protection.
 - [`release.yaml`](./.github/workflows/release.yaml) packages, signs, publishes, rebuilds `gh-pages`, and creates GitHub Releases with attached chart assets on `main`.
+  Manual dispatch now requires explicit scope selection: named charts, or `all` with an explicit confirmation flag.
 - [`chart-tool.sh`](./scripts/chart-tool.sh) is the only shell entrypoint the workflows call.
 
 ## Renovate Model
