@@ -37,7 +37,7 @@ inputs:
   yq-version:
     description: yq version to install.
     required: false
-    default: "3.4.3"
+    default: v4.49.2
   install-yamllint:
     description: Install yamllint.
     required: false
@@ -82,6 +82,7 @@ runs:
 
     - name: Setup PATH for downloaded tools
       if: >-
+        inputs.install-yq == 'true' ||
         inputs.install-helm-docs == 'true' ||
         inputs.install-actionlint == 'true' ||
         inputs.install-shfmt == 'true' ||
@@ -94,29 +95,26 @@ runs:
         printf '%s\n' "${RUNNER_TEMP}/bin" >> "${GITHUB_PATH}"
 
     - name: Setup PATH for Python tools
-      if: inputs.install-yq == 'true' || inputs.install-yamllint == 'true'
+      if: inputs.install-yamllint == 'true'
       shell: bash
       run: |
         set -euo pipefail
         printf '%s\n' "${HOME}/.local/bin" >> "${GITHUB_PATH}"
 
-    - name: Install Python YAML tooling
-      if: inputs.install-yq == 'true' || inputs.install-yamllint == 'true'
+    - name: Install yamllint
+      if: inputs.install-yamllint == 'true'
       shell: bash
       run: |
         set -euo pipefail
         python3 -m ensurepip --upgrade >/dev/null
-        packages=()
+        python3 -m pip install --user --disable-pip-version-check --no-input "yamllint==${{ inputs.yamllint-version }}"
 
-        if [ "${{ inputs.install-yq }}" = "true" ]; then
-          packages+=("yq==${{ inputs.yq-version }}")
-        fi
-
-        if [ "${{ inputs.install-yamllint }}" = "true" ]; then
-          packages+=("yamllint==${{ inputs.yamllint-version }}")
-        fi
-
-        python3 -m pip install --user --disable-pip-version-check --no-input "${packages[@]}"
+    - name: Install yq
+      if: inputs.install-yq == 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        ./scripts/chart-tool.sh tools install yq --version "${{ inputs.yq-version }}" --install-dir "${RUNNER_TEMP}/bin"
 
     - name: Install helm-docs
       if: inputs.install-helm-docs == 'true'

@@ -156,6 +156,9 @@ tool_release_repository() {
 	actionlint)
 		printf '%s\n' rhysd/actionlint
 		;;
+	yq)
+		printf '%s\n' mikefarah/yq
+		;;
 	helm-docs)
 		printf '%s\n' norwoodj/helm-docs
 		;;
@@ -185,6 +188,10 @@ tool_release_asset_candidates() {
 	case "${tool_name}" in
 	actionlint)
 		printf '%s\n' "actionlint_${clean_version}_${operating_system}_${architecture}.tar.gz"
+		;;
+	yq)
+		printf '%s\n' "yq_${operating_system}_${asset_architecture}"
+		printf '%s\n' "yq_${operating_system}_${asset_architecture}.tar.gz"
 		;;
 	helm-docs)
 		case "${operating_system}" in
@@ -311,8 +318,8 @@ tools_install() {
 	actionlint | helm-docs)
 		extract_verified_archive_binary "${release_json}" "${asset_json}" "${tool_name}" "${install_dir}" "${tool_name}"
 		;;
-	shfmt)
-		install_verified_release_binary "${release_json}" "${asset_json}" "${install_dir}" shfmt
+	shfmt | yq)
+		install_verified_release_binary "${release_json}" "${asset_json}" "${install_dir}" "${tool_name}"
 		;;
 	gitleaks | kube-score)
 		if [[ "$(jq -r '.name' <<<"${asset_json}")" == *.tar.gz ]]; then

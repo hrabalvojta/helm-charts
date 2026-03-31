@@ -24,7 +24,7 @@ Usage:
   scripts/chart-tool.sh charts docs-check [--charts-json <json> | <chart>...]
   scripts/chart-tool.sh charts test --chart <chart> [--scenario <name>]
   scripts/chart-tool.sh charts package --destination <dir> [--charts-json <json> | <chart>...]
-  scripts/chart-tool.sh tools install <actionlint|gitleaks|helm-docs|kube-score|shfmt> --version <version> --install-dir <dir>
+  scripts/chart-tool.sh tools install <actionlint|gitleaks|helm-docs|kube-score|shfmt|yq> --version <version> --install-dir <dir>
   scripts/chart-tool.sh release publish [--all | --charts-json <json> | --base <ref> --head <ref>]
 EOF
 }
