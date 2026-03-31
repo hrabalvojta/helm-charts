@@ -1,0 +1,205 @@
+name: ci
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  detect:
+    name: Detect Changed Charts
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      charts_json: ${{ steps.detect.outputs.charts_json }}
+      changed: ${{ steps.detect.outputs.changed }}
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Detect chart scope
+        id: detect
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || '' }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+
+          if [ "${EVENT_NAME}" = "pull_request" ]; then
+            charts_json="$(./scripts/chart-tool.sh discover changed --base "${BASE_SHA}" --head "${HEAD_SHA}" --format json)"
+          else
+            charts_json="$(./scripts/chart-tool.sh discover all --format json)"
+          fi
+
+          if [ "$(jq 'length' <<<"${charts_json}")" -gt 0 ]; then
+            changed=true
+          else
+            changed=false
+          fi
+
+          printf 'charts_json=%s\n' "${charts_json}" >> "${GITHUB_OUTPUT}"
+          printf 'changed=%s\n' "${changed}" >> "${GITHUB_OUTPUT}"
+
+          {
+            echo '### Chart Scope'
+            if [ "${changed}" = true ]; then
+              jq -r '.[] | "- `\(.)`"' <<<"${charts_json}"
+            else
+              echo '- no charts selected'
+            fi
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  repo-hygiene:
+    name: Repository Hygiene
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v6
+
+      - name: Setup hygiene tooling
+        uses: ./.github/actions/setup-chart-tooling
+        with:
+          install-actionlint: "true"
+
+      - name: Run repository lint checks
+        run: ./scripts/chart-tool.sh repo lint
+
+  chart-version:
+    name: Chart Version Policy
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: detect
+    if: github.event_name == 'pull_request' && needs.detect.outputs.changed == 'true'
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Enforce version bumps
+        run: ./scripts/chart-tool.sh version check --base "${{ github.event.pull_request.base.sha }}" --head "${{ github.event.pull_request.head.sha }}"
+
+  chart-validation:
+    name: Chart Validation / ${{ matrix.chart }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: detect
+    if: needs.detect.outputs.changed == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        chart: ${{ fromJSON(needs.detect.outputs.charts_json) }}
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v6
+
+      - name: Setup validation tooling
+        uses: ./.github/actions/setup-chart-tooling
+        with:
+          install-helm: "true"
+
+      - name: Audit chart metadata and render scenarios
+        run: |
+          set -euo pipefail
+          ./scripts/chart-tool.sh charts audit "${{ matrix.chart }}"
+          ./scripts/chart-tool.sh charts test --chart "${{ matrix.chart }}"
+
+  chart-docs:
+    name: Chart Docs
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: detect
+    if: needs.detect.outputs.changed == 'true'
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v6
+
+      - name: Setup docs tooling
+        uses: ./.github/actions/setup-chart-tooling
+        with:
+          install-helm-docs: "true"
+
+      - name: Verify generated chart documentation
+        run: ./scripts/chart-tool.sh charts docs-check --charts-json '${{ needs.detect.outputs.charts_json }}'
+
+  release-dry-run:
+    name: Release Dry Run
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: detect
+    if: needs.detect.outputs.changed == 'true'
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v6
+
+      - name: Setup release dry-run tooling
+        uses: ./.github/actions/setup-chart-tooling
+        with:
+          install-helm: "true"
+          install-helm-docs: "true"
+
+      - name: Exercise release pipeline without publishing
+        run: ./scripts/chart-tool.sh release publish --dry-run --charts-json '${{ needs.detect.outputs.charts_json }}'
+
+      - name: Upload packaged charts
+        uses: actions/upload-artifact@v4
+        with:
+          name: chart-packages
+          path: ${{ runner.temp }}/chart-packages/*.tgz
+          if-no-files-found: error
+          retention-days: 7
+
+  required:
+    name: Pull Request Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: ${{ always() }}
+    needs:
+      - repo-hygiene
+      - chart-version
+      - chart-validation
+      - chart-docs
+      - release-dry-run
+    steps:
+      - name: Assert required jobs succeeded
+        env:
+          REPO_HYGIENE_RESULT: ${{ needs.repo-hygiene.result }}
+          CHART_VERSION_RESULT: ${{ needs.chart-version.result }}
+          CHART_VALIDATION_RESULT: ${{ needs.chart-validation.result }}
+          CHART_DOCS_RESULT: ${{ needs.chart-docs.result }}
+          RELEASE_DRY_RUN_RESULT: ${{ needs.release-dry-run.result }}
+        run: |
+          set -euo pipefail
+
+          for result in \
+            "${REPO_HYGIENE_RESULT}" \
+            "${CHART_VERSION_RESULT}" \
+            "${CHART_VALIDATION_RESULT}" \
+            "${CHART_DOCS_RESULT}" \
+            "${RELEASE_DRY_RUN_RESULT}"
+          do
+            case "${result}" in
+              success|skipped)
+                ;;
+              *)
+                printf 'Required job completed with result: %s\n' "${result}" >&2
+                exit 1
+                ;;
+            esac
+          done

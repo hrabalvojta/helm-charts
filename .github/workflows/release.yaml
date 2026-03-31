@@ -1,0 +1,111 @@
+name: release
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - charts/**
+      - scripts/**
+      - artifacthub-repo.yml
+      - .github/actions/**
+      - .github/workflows/release.yaml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
+  id-token: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  REGISTRY: ghcr.io
+  OCI_NAMESPACE: ${{ github.repository }}
+  PAGES_BRANCH: gh-pages
+  COSIGN_CERT_IDENTITY: https://github.com/${{ github.repository }}/.github/workflows/release.yaml@${{ github.ref }}
+
+jobs:
+  detect:
+    name: Detect Release Scope
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      charts_json: ${{ steps.detect.outputs.charts_json }}
+      changed: ${{ steps.detect.outputs.changed }}
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Detect charts to release
+        id: detect
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE_SHA: ${{ github.event.before || '' }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          if [ "${EVENT_NAME}" = "workflow_dispatch" ] || [ -z "${BEFORE_SHA}" ] || [ "${BEFORE_SHA}" = "0000000000000000000000000000000000000000" ]; then
+            charts_json="$(./scripts/chart-tool.sh discover all --format json)"
+          else
+            charts_json="$(./scripts/chart-tool.sh discover changed --base "${BEFORE_SHA}" --head "${HEAD_SHA}" --format json)"
+          fi
+
+          changed=true
+
+          printf 'charts_json=%s\n' "${charts_json}" >> "${GITHUB_OUTPUT}"
+          printf 'changed=%s\n' "${changed}" >> "${GITHUB_OUTPUT}"
+
+          {
+            echo '### Release Scope'
+            if [ "$(jq 'length' <<<"${charts_json}")" -gt 0 ]; then
+              jq -r '.[] | "- `\(.)`"' <<<"${charts_json}"
+            else
+              echo '- no charts selected; pages metadata sync only'
+            fi
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  publish:
+    name: Publish Charts
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: detect
+    if: needs.detect.outputs.changed == 'true'
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup publishing tooling
+        uses: ./.github/actions/setup-chart-tooling
+        with:
+          install-helm: "true"
+          install-helm-docs: "true"
+          install-cosign: "true"
+
+      - name: Authenticate to GHCR for OCI signing clients
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Authenticate Helm registry client
+        run: |
+          set -euo pipefail
+          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login "${REGISTRY}" \
+            --username "${{ github.actor }}" \
+            --password-stdin
+
+      - name: Publish charts and update gh-pages
+        run: ./scripts/chart-tool.sh release publish --charts-json '${{ needs.detect.outputs.charts_json }}'
