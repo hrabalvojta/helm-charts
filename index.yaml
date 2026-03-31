@@ -3,7 +3,7 @@ entries:
   cyberchef:
   - apiVersion: v2
     appVersion: v10.22.1
-    created: "2026-03-31T17:02:27.917296877Z"
+    created: "2026-03-31T17:25:51.641408842Z"
     description: The Cyber Swiss Army Knife - a web app for encryption, encoding,
       compression and data analysis
     digest: 1145b85380d687a109c172da47930de2dee90eb1b052dc84c0b7a9a7b615c55f
@@ -26,7 +26,7 @@ entries:
     version: 0.1.15
   - apiVersion: v2
     appVersion: v10.22.1
-    created: "2026-03-31T17:02:27.916810357Z"
+    created: "2026-03-31T17:25:51.640910136Z"
     description: The Cyber Swiss Army Knife - a web app for encryption, encoding,
       compression and data analysis
     digest: 75debaf94aa48eead5648b41b90ec327ea602de3734602f31f938e9b974c1dfe
@@ -49,7 +49,7 @@ entries:
     version: 0.1.14
   - apiVersion: v2
     appVersion: v10.22.1
-    created: "2026-03-31T17:02:27.916307537Z"
+    created: "2026-03-31T17:25:51.64036994Z"
     description: The Cyber Swiss Army Knife - a web app for encryption, encoding,
       compression and data analysis
     digest: bc6c4b941a4e4022726156dddc859a9b7fd39ce6fb114a14c8128bb01e0033c8
@@ -72,7 +72,7 @@ entries:
     version: 0.1.13
   - apiVersion: v2
     appVersion: v10.22.1
-    created: "2026-03-31T17:02:27.915805828Z"
+    created: "2026-03-31T17:25:51.639874539Z"
     description: The Cyber Swiss Army Knife - a web app for encryption, encoding,
       compression and data analysis
     digest: d6a7d4459cc9d8da1203e579740e3b194de67ab193b7a4035842a08faa4651b0
@@ -95,7 +95,7 @@ entries:
     version: 0.1.12
   - apiVersion: v2
     appVersion: v10.22.1
-    created: "2026-03-31T17:02:27.915285736Z"
+    created: "2026-03-31T17:25:51.639297769Z"
     description: The Cyber Swiss Army Knife - a web app for encryption, encoding,
       compression and data analysis
     digest: e85f856e54d8cdff859a8e0a30ba2bd20aa9751c50e0800312e4f54d9fd92614
@@ -116,4 +116,4 @@ entries:
     urls:
     - https://hrabalvojta.github.io/helm-charts/charts/cyberchef-0.1.11.tgz
     version: 0.1.11
-generated: "2026-03-31T17:02:27.91460882Z"
+generated: "2026-03-31T17:25:51.638607721Z"
