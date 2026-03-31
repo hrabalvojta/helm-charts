@@ -69,6 +69,18 @@ fetch_registry_manifest_digest() {
 	esac
 }
 
+normalize_oci_digest() {
+	local raw_value="${1:-}"
+	local digest=""
+
+	if [ -z "${raw_value}" ]; then
+		return 0
+	fi
+
+	digest="$(printf '%s\n' "${raw_value}" | grep -Eo 'sha256:[0-9a-f]{64}' | head -n1 || true)"
+	printf '%s\n' "${digest}"
+}
+
 publish_oci_chart() {
 	local chart_dir="$1"
 	local package_dir="$2"
@@ -96,9 +108,9 @@ publish_oci_chart() {
 		info "Skipping OCI publish for ${chart_name_value}:${chart_version_value}; artifact already exists"
 	else
 		push_output="$(helm push "${package_path}" "oci://${registry}/${oci_namespace}" 2>&1)"
-		printf '%s\n' "${push_output}"
+		printf '%s\n' "${push_output}" >&2
 
-		published_digest="$(printf '%s\n' "${push_output}" | awk '/^Digest:/ { print $2; exit }')"
+		published_digest="$(normalize_oci_digest "${push_output}")"
 		[ -n "${published_digest}" ] || die "Unable to determine registry digest for ${chart_name_value}:${chart_version_value}"
 
 		oci_reference="${registry}/${oci_namespace}/${chart_name_value}@${published_digest}"
@@ -125,6 +137,7 @@ publish_oci_chart() {
 		digest="${published_digest}"
 	fi
 
+	digest="$(normalize_oci_digest "${digest}")"
 	[ -n "${digest}" ] || die "Unable to resolve OCI digest for ${chart_name_value}:${chart_version_value}"
 	printf '%s\n' "${digest}"
 }
@@ -255,6 +268,7 @@ release_assets_table_rows() {
 
 	pages_repository_url="$(chart_pages_repository_url)"
 	oci_repository="$(chart_oci_repository "${chart_dir}")"
+	oci_digest="$(normalize_oci_digest "${oci_digest}")"
 	package_name="$(basename "${package_path}")"
 	checksum_name="$(basename "$(package_sha256_file "${package_path}")")"
 
@@ -436,6 +450,7 @@ render_release_notes() {
 	package_sha256_digest="$(package_sha256_value "${package_path}")"
 	assets_table_rows="$(release_assets_table_rows "${chart_dir}" "${package_path}" "${oci_digest}")"
 
+	oci_digest="$(normalize_oci_digest "${oci_digest}")"
 	if [ -z "${oci_digest}" ]; then
 		oci_digest="n/a"
 	fi
