@@ -161,7 +161,7 @@ jobs:
         run: ./scripts/chart-tool.sh release publish --dry-run --charts-json '${{ needs.detect.outputs.charts_json }}'
 
       - name: Upload packaged charts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: chart-packages
           path: ${{ runner.temp }}/chart-packages/*.tgz
@@ -169,7 +169,7 @@ jobs:
           retention-days: 7
 
       - name: Upload release note previews
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-notes-preview
           path: ${{ runner.temp }}/github-release-notes/*.md
