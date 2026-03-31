@@ -43,3 +43,4 @@ helm upgrade --install {{CHART_NAME}} {{OCI_REPOSITORY}} \
 
 - The OCI artifact is the canonical distribution channel.
 - The attached `.tgz` asset is a convenience mirror for manual download and offline inspection.
+- The attached `.sigstore.json` bundle is the canonical verification material for the packaged chart blob.

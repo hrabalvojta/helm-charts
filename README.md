@@ -7,7 +7,7 @@ Opinionated Helm charts with strict CI, deterministic release automation, and Re
 - Validates changed charts on pull requests with repository linting, chart metadata audits, strict Helm rendering, docs verification, and a release dry-run.
 - Publishes packaged charts to GHCR as OCI artifacts.
 - Rebuilds and publishes a `gh-pages` Helm repository index after release.
-- Creates a structured GitHub Release per chart version and attaches the packaged `.tgz` plus integrity sidecars such as `.sha256`, `.sig`, and `.cert`.
+- Creates a structured GitHub Release per chart version and attaches the packaged `.tgz` plus integrity sidecars such as `.sha256` and `.sigstore.json`.
 - Keeps chart image versions and workflow dependencies current through Renovate.
 
 ## Local Commands

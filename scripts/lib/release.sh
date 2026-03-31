@@ -161,14 +161,9 @@ package_sha256_file() {
 	printf '%s.sha256\n' "${package_path}"
 }
 
-package_signature_file() {
+package_bundle_file() {
 	local package_path="$1"
-	printf '%s.sig\n' "${package_path}"
-}
-
-package_certificate_file() {
-	local package_path="$1"
-	printf '%s.cert\n' "${package_path}"
+	printf '%s.sigstore.json\n' "${package_path}"
 }
 
 create_package_checksum_asset() {
@@ -179,36 +174,31 @@ create_package_checksum_asset() {
 	printf '%s  %s\n' "$(sha256_digest "${package_path}")" "$(basename "${package_path}")" >"${checksum_file}"
 }
 
-create_package_signature_assets() {
+create_package_bundle_asset() {
 	local package_path="$1"
 	local cosign_identity="${COSIGN_CERT_IDENTITY:-}"
-	local signature_file
-	local certificate_file
+	local bundle_file
 
 	require_command cosign
 
-	signature_file="$(package_signature_file "${package_path}")"
-	certificate_file="$(package_certificate_file "${package_path}")"
+	bundle_file="$(package_bundle_file "${package_path}")"
 
 	COSIGN_YES=true cosign sign-blob \
-		--output-signature "${signature_file}" \
-		--output-certificate "${certificate_file}" \
+		--bundle "${bundle_file}" \
 		"${package_path}" >/dev/null
 
 	if [ -n "${cosign_identity}" ]; then
 		cosign verify-blob \
+			--bundle "${bundle_file}" \
 			--certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
 			--certificate-identity "${cosign_identity}" \
-			--certificate "${certificate_file}" \
-			--signature "${signature_file}" \
 			"${package_path}" >/dev/null
 	else
-		warn "COSIGN_CERT_IDENTITY is not set; falling back to workflow-path regex verification for blob signature"
+		warn "COSIGN_CERT_IDENTITY is not set; falling back to workflow-path regex verification for blob bundle verification"
 		cosign verify-blob \
+			--bundle "${bundle_file}" \
 			--certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
 			--certificate-identity-regexp "^https://github.com/${GITHUB_REPOSITORY}/.github/workflows/release.yaml@.+$" \
-			--certificate "${certificate_file}" \
-			--signature "${signature_file}" \
 			"${package_path}" >/dev/null
 	fi
 }
@@ -221,23 +211,20 @@ prepare_release_assets() {
 	create_package_checksum_asset "${package_path}"
 
 	if [ "${sign_blob}" = true ]; then
-		create_package_signature_assets "${package_path}"
+		create_package_bundle_asset "${package_path}"
 	fi
 }
 
 release_asset_paths_for_package() {
 	local package_path="$1"
-	local signature_file
-	local certificate_file
+	local bundle_file
 
 	printf '%s\n' "${package_path}"
 	printf '%s\n' "$(package_sha256_file "${package_path}")"
 
-	signature_file="$(package_signature_file "${package_path}")"
-	certificate_file="$(package_certificate_file "${package_path}")"
+	bundle_file="$(package_bundle_file "${package_path}")"
 
-	[ -f "${signature_file}" ] && printf '%s\n' "${signature_file}"
-	[ -f "${certificate_file}" ] && printf '%s\n' "${certificate_file}"
+	[ -f "${bundle_file}" ] && printf '%s\n' "${bundle_file}"
 }
 
 package_sha256_value() {
@@ -263,8 +250,7 @@ release_assets_table_rows() {
 	local oci_repository
 	local package_name
 	local checksum_name
-	local signature_name
-	local certificate_name
+	local bundle_name
 	local rows=""
 
 	pages_repository_url="$(chart_pages_repository_url)"
@@ -275,14 +261,9 @@ release_assets_table_rows() {
 	rows+="| [\`${package_name}\`]($(release_asset_download_url "${chart_dir}" "${package_name}")) | Packaged Helm chart attached to this GitHub Release. |"$'\n'
 	rows+="| [\`${checksum_name}\`]($(release_asset_download_url "${chart_dir}" "${checksum_name}")) | SHA256 checksum for the packaged chart asset. |"$'\n'
 
-	signature_name="$(basename "$(package_signature_file "${package_path}")")"
-	if [ -f "$(package_signature_file "${package_path}")" ]; then
-		rows+="| [\`${signature_name}\`]($(release_asset_download_url "${chart_dir}" "${signature_name}")) | Cosign keyless signature for the packaged chart asset. |"$'\n'
-	fi
-
-	certificate_name="$(basename "$(package_certificate_file "${package_path}")")"
-	if [ -f "$(package_certificate_file "${package_path}")" ]; then
-		rows+="| [\`${certificate_name}\`]($(release_asset_download_url "${chart_dir}" "${certificate_name}")) | Fulcio certificate emitted for the keyless blob signature. |"$'\n'
+	bundle_name="$(basename "$(package_bundle_file "${package_path}")")"
+	if [ -f "$(package_bundle_file "${package_path}")" ]; then
+		rows+="| [\`${bundle_name}\`]($(release_asset_download_url "${chart_dir}" "${bundle_name}")) | Sigstore bundle containing the blob signature, certificate, timestamp, and transparency proof. |"$'\n'
 	fi
 
 	if [ -n "${oci_digest}" ] && [ "${oci_digest}" != "n/a" ]; then
