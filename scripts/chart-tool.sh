@@ -126,7 +126,7 @@ repo_lint() {
     actionlint .github/workflows/*.yaml
     shellcheck scripts/*.sh scripts/lib/*.sh
     [ -f .github/release-template.md ] || die "Missing .github/release-template.md"
-    jq empty .github/renovate.json5 >/dev/null
+    jq empty .github/renovate.json >/dev/null
   )
 }
 
