@@ -134,6 +134,14 @@ chart_app_version() {
   chart_yaml_value "$(chart_file "$1")" appVersion
 }
 
+chart_description() {
+  chart_yaml_value "$(chart_file "$1")" description
+}
+
+chart_kube_version() {
+  chart_yaml_value "$(chart_file "$1")" kubeVersion
+}
+
 chart_default_image_tag() {
   values_yaml_image_value "$(values_file "$1")" tag
 }

@@ -147,6 +147,9 @@ jobs:
     steps:
       - name: Checkout source
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
 
       - name: Setup release dry-run tooling
         uses: ./.github/actions/setup-chart-tooling
@@ -162,6 +165,14 @@ jobs:
         with:
           name: chart-packages
           path: ${{ runner.temp }}/chart-packages/*.tgz
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload release note previews
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-notes-preview
+          path: ${{ runner.temp }}/github-release-notes/*.md
           if-no-files-found: error
           retention-days: 7
 

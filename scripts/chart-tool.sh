@@ -125,6 +125,7 @@ repo_lint() {
     cd "${CHART_TOOL_ROOT_DIR}"
     actionlint .github/workflows/*.yaml
     shellcheck scripts/*.sh scripts/lib/*.sh
+    [ -f .github/release-template.md ] || die "Missing .github/release-template.md"
     jq empty .github/renovate.json5 >/dev/null
   )
 }
@@ -580,6 +581,450 @@ publish_oci_chart() {
   info "Published and signed ${oci_reference}"
 }
 
+release_template_file() {
+  printf '%s/.github/release-template.md\n' "${CHART_TOOL_ROOT_DIR}"
+}
+
+chart_release_tag() {
+  local chart_dir="$1"
+  printf '%s-%s\n' "$(chart_name "${chart_dir}")" "$(chart_version "${chart_dir}")"
+}
+
+chart_release_title() {
+  local chart_dir="$1"
+  printf '%s %s\n' "$(chart_name "${chart_dir}")" "$(chart_version "${chart_dir}")"
+}
+
+chart_oci_repository() {
+  local chart_dir="$1"
+  local registry="${REGISTRY:-ghcr.io}"
+  local oci_namespace="${OCI_NAMESPACE:-${GITHUB_REPOSITORY}}"
+
+  printf 'oci://%s/%s/%s\n' "${registry}" "${oci_namespace}" "$(chart_name "${chart_dir}")"
+}
+
+chart_pages_repository_url() {
+  local repo_name="${GITHUB_REPOSITORY#*/}"
+  printf 'https://%s.github.io/%s\n' "${GITHUB_REPOSITORY_OWNER}" "${repo_name}"
+}
+
+find_previous_chart_release_tag() {
+  local chart_dir="$1"
+  local current_tag
+  local tag_name
+
+  current_tag="$(chart_release_tag "${chart_dir}")"
+
+  while IFS= read -r tag_name; do
+    [ -n "${tag_name}" ] || continue
+    [ "${tag_name}" = "${current_tag}" ] && continue
+    printf '%s\n' "${tag_name}"
+    return 0
+  done < <(
+    git -C "${CHART_TOOL_ROOT_DIR}" tag --list "$(chart_name "${chart_dir}")-*" --sort=-version:refname
+  )
+}
+
+release_target_commit() {
+  if [ -n "${GITHUB_SHA:-}" ]; then
+    printf '%s\n' "${GITHUB_SHA}"
+    return 0
+  fi
+
+  git -C "${CHART_TOOL_ROOT_DIR}" rev-parse HEAD
+}
+
+assert_release_tag_is_reusable() {
+  local chart_dir="$1"
+  local tag_name
+  local target_commit
+  local tagged_commit
+
+  tag_name="$(chart_release_tag "${chart_dir}")"
+  target_commit="$(release_target_commit)"
+
+  if ! git -C "${CHART_TOOL_ROOT_DIR}" rev-parse --verify --quiet "refs/tags/${tag_name}" >/dev/null; then
+    return 0
+  fi
+
+  tagged_commit="$(git -C "${CHART_TOOL_ROOT_DIR}" rev-list -n 1 "${tag_name}")"
+  [ "${tagged_commit}" = "${target_commit}" ] || die "Release tag ${tag_name} already points to ${tagged_commit}; refusing to reuse chart version on ${target_commit}"
+}
+
+markdown_release_changelog() {
+  local chart_dir="$1"
+  local previous_tag="${2:-}"
+  local target_commit
+  local range_spec
+  local output=""
+  local commit_sha
+  local commit_subject
+
+  target_commit="$(release_target_commit)"
+
+  if [ -n "${previous_tag}" ]; then
+    range_spec="${previous_tag}..${target_commit}"
+  else
+    range_spec="${target_commit}"
+  fi
+
+  while IFS=$'\t' read -r commit_sha commit_subject; do
+    [ -n "${commit_sha}" ] || continue
+    output+="- ${commit_subject} ([\`${commit_sha:0:7}\`](https://github.com/${GITHUB_REPOSITORY}/commit/${commit_sha}))"$'\n'
+  done < <(
+    git -C "${CHART_TOOL_ROOT_DIR}" log \
+      --reverse \
+      --no-merges \
+      --format='%H%x09%s' \
+      "${range_spec}" \
+      -- "${chart_dir}"
+  )
+
+  if [ -z "${output}" ]; then
+    output='- No chart-path commits were found for this release range.'
+  fi
+
+  printf '%s\n' "${output%$'\n'}"
+}
+
+markdown_release_contributors() {
+  local chart_dir="$1"
+  local previous_tag="${2:-}"
+  local target_commit
+  local range_spec
+  local output=""
+  local count
+  local contributor_name
+
+  target_commit="$(release_target_commit)"
+
+  if [ -n "${previous_tag}" ]; then
+    range_spec="${previous_tag}..${target_commit}"
+  else
+    range_spec="${target_commit}"
+  fi
+
+  while IFS=$'\t' read -r count contributor_name; do
+    [ -n "${contributor_name}" ] || continue
+    output+="- ${contributor_name} (${count} commit"
+    [ "${count}" = "1" ] || output+="s"
+    output+=")"$'\n'
+  done < <(
+    git -C "${CHART_TOOL_ROOT_DIR}" shortlog -sn "${range_spec}" -- "${chart_dir}" |
+      sed -E 's/^[[:space:]]*([0-9]+)[[:space:]]+(.+)$/\1\t\2/'
+  )
+
+  if [ -z "${output}" ]; then
+    output='- No distinct contributors were found for this release range.'
+  fi
+
+  printf '%s\n' "${output%$'\n'}"
+}
+
+render_release_notes() {
+  local chart_dir="$1"
+  local package_path="$2"
+  local destination_path="$3"
+  local template_path
+  local chart_name_value
+  local chart_version_value
+  local chart_app_version_value
+  local chart_description_value
+  local chart_kube_version_value
+  local release_tag_value
+  local release_title_value
+  local previous_tag
+  local compare_url_value="n/a"
+  local changelog_value
+  local contributors_value
+  local asset_name
+  local asset_download_url
+  local oci_repository
+  local pages_repository_url
+  local release_date_value
+  local commit_sha_value
+
+  template_path="$(release_template_file)"
+  [ -f "${template_path}" ] || die "Release template not found: ${template_path}"
+  [ -f "${package_path}" ] || die "Packaged chart not found: ${package_path}"
+
+  chart_name_value="$(chart_name "${chart_dir}")"
+  chart_version_value="$(chart_version "${chart_dir}")"
+  chart_app_version_value="$(chart_app_version "${chart_dir}")"
+  chart_description_value="$(chart_description "${chart_dir}")"
+  chart_kube_version_value="$(chart_kube_version "${chart_dir}")"
+  release_tag_value="$(chart_release_tag "${chart_dir}")"
+  release_title_value="$(chart_release_title "${chart_dir}")"
+  previous_tag="$(find_previous_chart_release_tag "${chart_dir}" || true)"
+  changelog_value="$(markdown_release_changelog "${chart_dir}" "${previous_tag}")"
+  contributors_value="$(markdown_release_contributors "${chart_dir}" "${previous_tag}")"
+  asset_name="$(basename "${package_path}")"
+  asset_download_url="https://github.com/${GITHUB_REPOSITORY}/releases/download/${release_tag_value}/${asset_name}"
+  oci_repository="$(chart_oci_repository "${chart_dir}")"
+  pages_repository_url="$(chart_pages_repository_url)"
+  release_date_value="$(date -u +%Y-%m-%d)"
+  commit_sha_value="$(release_target_commit)"
+
+  if [ -n "${previous_tag}" ]; then
+    compare_url_value="https://github.com/${GITHUB_REPOSITORY}/compare/${previous_tag}...${release_tag_value}"
+  fi
+
+  awk \
+    -v chart_name_value="${chart_name_value}" \
+    -v chart_version_value="${chart_version_value}" \
+    -v chart_app_version_value="${chart_app_version_value}" \
+    -v chart_description_value="${chart_description_value}" \
+    -v chart_kube_version_value="${chart_kube_version_value}" \
+    -v release_tag_value="${release_tag_value}" \
+    -v release_title_value="${release_title_value}" \
+    -v release_date_value="${release_date_value}" \
+    -v commit_sha_value="${commit_sha_value}" \
+    -v previous_tag_value="${previous_tag:-n/a}" \
+    -v compare_url_value="${compare_url_value}" \
+    -v asset_name_value="${asset_name}" \
+    -v asset_download_url_value="${asset_download_url}" \
+    -v oci_repository_value="${oci_repository}" \
+    -v pages_repository_url_value="${pages_repository_url}" \
+    -v changelog_value="${changelog_value}" \
+    -v contributors_value="${contributors_value}" '
+      {
+        if ($0 == "{{CHANGELOG}}") {
+          print changelog_value
+          next
+        }
+
+        if ($0 == "{{CONTRIBUTORS}}") {
+          print contributors_value
+          next
+        }
+
+        gsub(/\{\{CHART_NAME\}\}/, chart_name_value)
+        gsub(/\{\{CHART_VERSION\}\}/, chart_version_value)
+        gsub(/\{\{APP_VERSION\}\}/, chart_app_version_value)
+        gsub(/\{\{CHART_DESCRIPTION\}\}/, chart_description_value)
+        gsub(/\{\{KUBE_VERSION\}\}/, chart_kube_version_value)
+        gsub(/\{\{RELEASE_TAG\}\}/, release_tag_value)
+        gsub(/\{\{RELEASE_TITLE\}\}/, release_title_value)
+        gsub(/\{\{RELEASE_DATE\}\}/, release_date_value)
+        gsub(/\{\{COMMIT_SHA\}\}/, commit_sha_value)
+        gsub(/\{\{PREVIOUS_TAG\}\}/, previous_tag_value)
+        gsub(/\{\{COMPARE_URL\}\}/, compare_url_value)
+        gsub(/\{\{HELM_PACKAGE_NAME\}\}/, asset_name_value)
+        gsub(/\{\{HELM_PACKAGE_DOWNLOAD_URL\}\}/, asset_download_url_value)
+        gsub(/\{\{OCI_REPOSITORY\}\}/, oci_repository_value)
+        gsub(/\{\{PAGES_REPOSITORY_URL\}\}/, pages_repository_url_value)
+
+        print
+      }
+    ' "${template_path}" > "${destination_path}"
+}
+
+github_api_request() {
+  local method="$1"
+  local url="$2"
+  local data_file="${3:-}"
+  local content_type="${4:-application/json}"
+  local response_file
+  local http_status
+  local -a curl_args=()
+
+  [ -n "${GITHUB_TOKEN:-}" ] || die "GITHUB_TOKEN must be set for GitHub release publishing"
+  require_command curl
+
+  response_file="$(mktemp)"
+
+  curl_args=(
+    curl
+    -sS
+    -X "${method}"
+    -H "Accept: application/vnd.github+json"
+    -H "Authorization: Bearer ${GITHUB_TOKEN}"
+    -H "X-GitHub-Api-Version: 2022-11-28"
+    -o "${response_file}"
+    -w "%{http_code}"
+  )
+
+  if [ -n "${content_type}" ]; then
+    curl_args+=(-H "Content-Type: ${content_type}")
+  fi
+
+  if [ -n "${data_file}" ]; then
+    curl_args+=(--data @"${data_file}")
+  fi
+
+  http_status="$("${curl_args[@]}" "${url}")"
+
+  case "${http_status}" in
+    2*)
+      cat "${response_file}"
+      ;;
+    *)
+      warn "GitHub API request failed: ${method} ${url} (${http_status})"
+      cat "${response_file}" >&2
+      rm -f "${response_file}"
+      return 1
+      ;;
+  esac
+
+  rm -f "${response_file}"
+}
+
+github_release_by_tag() {
+  local tag_name="$1"
+  local api_url="${GITHUB_API_URL:-https://api.github.com}"
+  local response_file
+  local http_status
+
+  [ -n "${GITHUB_TOKEN:-}" ] || die "GITHUB_TOKEN must be set for GitHub release publishing"
+  require_command curl
+
+  response_file="$(mktemp)"
+  http_status="$(
+    curl \
+      -sS \
+      -H "Accept: application/vnd.github+json" \
+      -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+      -H "X-GitHub-Api-Version: 2022-11-28" \
+      -o "${response_file}" \
+      -w "%{http_code}" \
+      "${api_url}/repos/${GITHUB_REPOSITORY}/releases/tags/${tag_name}"
+  )"
+
+  case "${http_status}" in
+    200)
+      cat "${response_file}"
+      rm -f "${response_file}"
+      return 0
+      ;;
+    404)
+      rm -f "${response_file}"
+      return 1
+      ;;
+    *)
+      warn "Unable to query release ${tag_name} (${http_status})"
+      cat "${response_file}" >&2
+      rm -f "${response_file}"
+      die "GitHub release lookup failed for ${tag_name}"
+      ;;
+  esac
+}
+
+upload_release_asset() {
+  local upload_url="$1"
+  local package_path="$2"
+  local response_file
+  local http_status
+  local asset_name
+
+  [ -n "${GITHUB_TOKEN:-}" ] || die "GITHUB_TOKEN must be set for GitHub release publishing"
+  require_command curl
+
+  asset_name="$(basename "${package_path}")"
+  response_file="$(mktemp)"
+  http_status="$(
+    curl \
+      -sS \
+      -X POST \
+      -H "Accept: application/vnd.github+json" \
+      -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+      -H "X-GitHub-Api-Version: 2022-11-28" \
+      -H "Content-Type: application/gzip" \
+      --data-binary @"${package_path}" \
+      -o "${response_file}" \
+      -w "%{http_code}" \
+      "${upload_url}?name=${asset_name}"
+  )"
+
+  case "${http_status}" in
+    2*)
+      cat "${response_file}"
+      ;;
+    *)
+      warn "Asset upload failed for ${asset_name} (${http_status})"
+      cat "${response_file}" >&2
+      rm -f "${response_file}"
+      return 1
+      ;;
+  esac
+
+  rm -f "${response_file}"
+}
+
+publish_github_release() {
+  local chart_dir="$1"
+  local package_path="$2"
+  local release_notes_path="$3"
+  local api_url="${GITHUB_API_URL:-https://api.github.com}"
+  local target_commit
+  local tag_name
+  local release_name
+  local release_version
+  local prerelease=false
+  local payload_file
+  local release_json
+  local release_id
+  local upload_url
+  local release_url
+  local asset_name
+  local existing_asset_id
+
+  require_command git jq
+  [ -f "${package_path}" ] || die "Packaged chart not found: ${package_path}"
+  [ -f "${release_notes_path}" ] || die "Release notes not found: ${release_notes_path}"
+
+  assert_release_tag_is_reusable "${chart_dir}"
+
+  target_commit="$(release_target_commit)"
+  tag_name="$(chart_release_tag "${chart_dir}")"
+  release_name="$(chart_release_title "${chart_dir}")"
+  release_version="$(chart_version "${chart_dir}")"
+  asset_name="$(basename "${package_path}")"
+
+  if [[ "${release_version}" == *-* ]]; then
+    prerelease=true
+  fi
+
+  payload_file="$(mktemp)"
+  jq -n \
+    --arg tag_name "${tag_name}" \
+    --arg target_commitish "${target_commit}" \
+    --arg name "${release_name}" \
+    --rawfile body "${release_notes_path}" \
+    --argjson prerelease "${prerelease}" \
+    '{
+      tag_name: $tag_name,
+      target_commitish: $target_commitish,
+      name: $name,
+      body: $body,
+      draft: false,
+      prerelease: $prerelease,
+      generate_release_notes: false
+    }' > "${payload_file}"
+
+  if release_json="$(github_release_by_tag "${tag_name}")"; then
+    release_id="$(jq -r '.id' <<<"${release_json}")"
+    existing_asset_id="$(jq -r --arg asset_name "${asset_name}" '.assets[]? | select(.name == $asset_name) | .id' <<<"${release_json}" | head -n 1)"
+
+    if [ -n "${existing_asset_id:-}" ] && [ "${existing_asset_id}" != "null" ]; then
+      github_api_request DELETE "${api_url}/repos/${GITHUB_REPOSITORY}/releases/assets/${existing_asset_id}" "" ""
+    fi
+
+    release_json="$(github_api_request PATCH "${api_url}/repos/${GITHUB_REPOSITORY}/releases/${release_id}" "${payload_file}")"
+  else
+    release_json="$(github_api_request POST "${api_url}/repos/${GITHUB_REPOSITORY}/releases" "${payload_file}")"
+  fi
+
+  rm -f "${payload_file}"
+
+  upload_url="$(jq -r '.upload_url' <<<"${release_json}")"
+  release_url="$(jq -r '.html_url' <<<"${release_json}")"
+  [ -n "${upload_url}" ] && [ "${upload_url}" != "null" ] || die "GitHub release upload URL missing for ${tag_name}"
+  [ -n "${release_url}" ] && [ "${release_url}" != "null" ] || die "GitHub release URL missing for ${tag_name}"
+
+  upload_release_asset "${upload_url%%\{*}" "${package_path}" >/dev/null
+  info "Published GitHub release ${release_url} with asset ${asset_name}"
+}
+
 prepare_pages_worktree() {
   local worktree_dir="$1"
   local pages_branch="${PAGES_BRANCH:-gh-pages}"
@@ -683,6 +1128,7 @@ release_publish() {
   local package_dir
   local registry_check_dir
   local site_dir
+  local release_notes_dir
   local -a chart_dirs=()
 
   while [ "$#" -gt 0 ]; do
@@ -738,8 +1184,9 @@ release_publish() {
   registry_check_dir="${RUNNER_TEMP}/registry-check"
   site_dir="${RUNNER_TEMP}/gh-pages-site"
   worktree_dir="${RUNNER_TEMP}/gh-pages-worktree"
+  release_notes_dir="${RUNNER_TEMP}/github-release-notes"
 
-  mkdir -p "${package_dir}" "${registry_check_dir}"
+  mkdir -p "${package_dir}" "${registry_check_dir}" "${release_notes_dir}"
   trap 'git -C "${CHART_TOOL_ROOT_DIR}" worktree remove --force "'"${worktree_dir}"'" >/dev/null 2>&1 || true' EXIT
 
   if [ "${#chart_dirs[@]}" -gt 0 ]; then
@@ -765,6 +1212,32 @@ release_publish() {
 
   if [ "${dry_run}" = false ]; then
     publish_pages_site "${site_dir}" "${worktree_dir}"
+  fi
+
+  if [ "${#chart_dirs[@]}" -eq 0 ]; then
+    return 0
+  fi
+
+  for chart_dir in "${chart_dirs[@]}"; do
+    local chart_name_value
+    local chart_version_value
+    local package_path
+    local release_notes_path
+
+    chart_name_value="$(chart_name "${chart_dir}")"
+    chart_version_value="$(chart_version "${chart_dir}")"
+    package_path="${package_dir}/${chart_name_value}-${chart_version_value}.tgz"
+    release_notes_path="${release_notes_dir}/${chart_name_value}-${chart_version_value}.md"
+
+    render_release_notes "${chart_dir}" "${package_path}" "${release_notes_path}"
+
+    if [ "${dry_run}" = false ]; then
+      publish_github_release "${chart_dir}" "${package_path}" "${release_notes_path}"
+    fi
+  done
+
+  if [ "${dry_run}" = true ]; then
+    info "Release dry run enabled; rendered GitHub release notes to ${release_notes_dir}"
   fi
 }
 
