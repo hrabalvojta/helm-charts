@@ -5,14 +5,29 @@ if [[ -n "${CHART_TOOL_GITHUB_SH_LOADED:-}" ]]; then
 fi
 readonly CHART_TOOL_GITHUB_SH_LOADED=1
 
+github_api_token() {
+	if [ -n "${GITHUB_TOKEN:-}" ]; then
+		printf '%s\n' "${GITHUB_TOKEN}"
+		return 0
+	fi
+
+	if [ -n "${GH_TOKEN:-}" ]; then
+		printf '%s\n' "${GH_TOKEN}"
+		return 0
+	fi
+
+	return 1
+}
+
 github_api_headers() {
+	local github_token=""
 	local -a headers=(
 		-H "Accept: application/vnd.github+json"
 		-H "X-GitHub-Api-Version: 2022-11-28"
 	)
 
-	if [ -n "${GITHUB_TOKEN:-}" ]; then
-		headers+=(-H "Authorization: Bearer ${GITHUB_TOKEN}")
+	if github_token="$(github_api_token)"; then
+		headers+=(-H "Authorization: Bearer ${github_token}")
 	fi
 
 	printf '%s\n' "${headers[@]}"
@@ -65,7 +80,7 @@ github_api_request() {
 	local -a curl_args=(curl -sS -X "${method}")
 	local header
 
-	[ -n "${GITHUB_TOKEN:-}" ] || die "GITHUB_TOKEN must be set for GitHub release publishing"
+	github_api_token >/dev/null || die "GITHUB_TOKEN or GH_TOKEN must be set for GitHub release publishing"
 	require_command curl
 
 	response_file="$(mktemp)"
@@ -129,7 +144,7 @@ github_release_by_tag() {
 	local -a curl_args=(curl -sS)
 	local header
 
-	[ -n "${GITHUB_TOKEN:-}" ] || die "GITHUB_TOKEN must be set for GitHub release publishing"
+	github_api_token >/dev/null || die "GITHUB_TOKEN or GH_TOKEN must be set for GitHub release publishing"
 	require_command curl
 
 	response_file="$(mktemp)"
@@ -174,7 +189,7 @@ upload_release_asset() {
 	local -a curl_args=(curl -sS -X POST)
 	local header
 
-	[ -n "${GITHUB_TOKEN:-}" ] || die "GITHUB_TOKEN must be set for GitHub release publishing"
+	github_api_token >/dev/null || die "GITHUB_TOKEN or GH_TOKEN must be set for GitHub release publishing"
 	require_command curl
 
 	asset_name="$(basename "${asset_path}")"

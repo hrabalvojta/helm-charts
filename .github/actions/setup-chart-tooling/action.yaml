@@ -112,6 +112,8 @@ runs:
     - name: Install yq
       if: inputs.install-yq == 'true'
       shell: bash
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
       run: |
         set -euo pipefail
         ./scripts/chart-tool.sh tools install yq --version "${{ inputs.yq-version }}" --install-dir "${RUNNER_TEMP}/bin"
@@ -119,6 +121,8 @@ runs:
     - name: Install helm-docs
       if: inputs.install-helm-docs == 'true'
       shell: bash
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
       run: |
         set -euo pipefail
         ./scripts/chart-tool.sh tools install helm-docs --version "${{ inputs.helm-docs-version }}" --install-dir "${RUNNER_TEMP}/bin"
@@ -126,6 +130,8 @@ runs:
     - name: Install actionlint
       if: inputs.install-actionlint == 'true'
       shell: bash
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
       run: |
         set -euo pipefail
         ./scripts/chart-tool.sh tools install actionlint --version "${{ inputs.actionlint-version }}" --install-dir "${RUNNER_TEMP}/bin"
@@ -133,6 +139,8 @@ runs:
     - name: Install shfmt
       if: inputs.install-shfmt == 'true'
       shell: bash
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
       run: |
         set -euo pipefail
         ./scripts/chart-tool.sh tools install shfmt --version "${{ inputs.shfmt-version }}" --install-dir "${RUNNER_TEMP}/bin"
@@ -140,6 +148,8 @@ runs:
     - name: Install gitleaks
       if: inputs.install-gitleaks == 'true'
       shell: bash
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
       run: |
         set -euo pipefail
         ./scripts/chart-tool.sh tools install gitleaks --version "${{ inputs.gitleaks-version }}" --install-dir "${RUNNER_TEMP}/bin"
@@ -147,6 +157,8 @@ runs:
     - name: Install kube-score
       if: inputs.install-kube-score == 'true'
       shell: bash
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
       run: |
         set -euo pipefail
         ./scripts/chart-tool.sh tools install kube-score --version "${{ inputs.kube-score-version }}" --install-dir "${RUNNER_TEMP}/bin"
