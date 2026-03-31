@@ -1,0 +1,15 @@
+# Repository default owner
+* @hrabalvojta
+
+# Automation and release surface
+/.github/ @hrabalvojta
+/scripts/ @hrabalvojta
+/artifacthub-repo.yml @hrabalvojta
+
+# Charts and published assets
+/charts/ @hrabalvojta
+/docs/ @hrabalvojta
+/README.md @hrabalvojta
+/CONTRIBUTING.md @hrabalvojta
+/CODE_OF_CONDUCT.md @hrabalvojta
+/CODEOWNERS @hrabalvojta
