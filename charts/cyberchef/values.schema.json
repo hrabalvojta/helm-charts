@@ -532,11 +532,18 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "enabled"
+        "enabled",
+        "egress"
       ],
       "properties": {
         "enabled": {
           "type": "boolean"
+        },
+        "egress": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
         }
       }
     },

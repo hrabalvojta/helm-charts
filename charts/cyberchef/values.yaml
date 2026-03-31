@@ -69,6 +69,9 @@ service:
 
 networkPolicy:
   enabled: true
+  # Default to deny-all egress. Add explicit rules only if the workload genuinely
+  # needs outbound network access.
+  egress: []
 
 # This block is for setting up the ingress for more information can be found here: https://kubernetes.io/docs/concepts/services-networking/ingress/
 ingress:
