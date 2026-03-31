@@ -122,7 +122,11 @@ jobs:
             charts_json="$(./scripts/chart-tool.sh discover changed --base "${BEFORE_SHA}" --head "${HEAD_SHA}" --format json)"
           fi
 
-          changed=true
+          if [ "$(jq 'length' <<<"${charts_json}")" -gt 0 ]; then
+            changed=true
+          else
+            changed=false
+          fi
 
           printf 'charts_json=%s\n' "${charts_json}" >> "${GITHUB_OUTPUT}"
           printf 'changed=%s\n' "${changed}" >> "${GITHUB_OUTPUT}"
@@ -132,7 +136,7 @@ jobs:
             if [ "$(jq 'length' <<<"${charts_json}")" -gt 0 ]; then
               jq -r '.[] | "- `\(.)`"' <<<"${charts_json}"
             else
-              echo '- no charts selected; pages metadata sync only'
+              echo '- no charts selected; publish job will be skipped'
             fi
           } >> "${GITHUB_STEP_SUMMARY}"
 
