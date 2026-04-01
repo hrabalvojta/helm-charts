@@ -49,7 +49,7 @@ securityContext:
     drop:
       - ALL
   privileged: false
-  readOnlyRootFilesystem: true
+  readOnlyRootFilesystem: false
   runAsGroup: 10001
   runAsNonRoot: true
   runAsUser: 10001
