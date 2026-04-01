@@ -29,7 +29,7 @@ Or alternatively you can use oci:
 helm install my-{{ template "chart.name" . }} oci://ghcr.io/hrabalvojta/helm-charts/{{ template "chart.name" . }} --version {{ template "chart.version" . }}
 ```
 
-```console
+```bash
 cosign verify \
   --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
   --certificate-identity-regexp='^https://github.com/hrabalvojta/helm-charts/.github/workflows/release.yaml@.+$' \
