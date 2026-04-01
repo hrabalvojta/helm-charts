@@ -168,7 +168,9 @@ jobs:
 
       - name: Enforce version bumps on release branch
         if: github.event_name == 'push' && needs.detect.outputs.changed == 'true'
-        run: ./scripts/chart-tool.sh version check --base "${{ github.event.before }}" --head "${{ github.sha }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./scripts/chart-tool.sh version check --base "${{ github.event.before }}" --head "${{ github.sha }}" --allow-unpublished-reuse
 
       - name: Authenticate to GHCR for OCI signing clients
         uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4

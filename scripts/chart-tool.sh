@@ -19,7 +19,7 @@ Usage:
   scripts/chart-tool.sh discover all [--format lines|json]
   scripts/chart-tool.sh discover changed --base <ref> --head <ref> [--format lines|json]
   scripts/chart-tool.sh repo lint
-  scripts/chart-tool.sh version check --base <ref> --head <ref>
+  scripts/chart-tool.sh version check --base <ref> --head <ref> [--allow-unpublished-reuse]
   scripts/chart-tool.sh charts audit [--charts-json <json> | <chart>...]
   scripts/chart-tool.sh charts docs-check [--charts-json <json> | <chart>...]
   scripts/chart-tool.sh charts test --chart <chart> [--scenario <name>]
@@ -143,11 +143,14 @@ repo_lint() {
 check_chart_version_bump() {
 	local chart_dir="$1"
 	local base_ref="$2"
+	local allow_unpublished_reuse="${3:-false}"
 	local current_version
+	local chart_name_value
 	local previous_chart_path
 	local previous_chart_file
 	local previous_version
 
+	chart_name_value="$(chart_name "${chart_dir}")"
 	current_version="$(chart_version "${chart_dir}")"
 	[ -n "${current_version}" ] || die "Missing version in ${chart_dir}/Chart.yaml"
 	semver_is_valid "${current_version}" || die "Chart version is not valid SemVer in ${chart_dir}/Chart.yaml: ${current_version}"
@@ -171,12 +174,27 @@ check_chart_version_bump() {
 
 	[ -n "${previous_version}" ] || die "Cannot read the previous chart version from ${base_ref}:${previous_chart_path}"
 	semver_is_valid "${previous_version}" || die "Previous chart version is not valid SemVer in ${base_ref}:${previous_chart_path}: ${previous_version}"
-	semver_gt "${current_version}" "${previous_version}" || die "${chart_dir} version must increase relative to ${base_ref} (${previous_version} -> ${current_version})"
+
+	if semver_gt "${current_version}" "${previous_version}"; then
+		return 0
+	fi
+
+	if [ "${allow_unpublished_reuse}" = true ] && [ "${current_version}" = "${previous_version}" ]; then
+		if chart_version_is_published "${chart_name_value}" "${current_version}"; then
+			die "${chart_dir} version ${current_version} is already published; bump the chart version before releasing new chart contents"
+		fi
+
+		info "${chart_dir} version ${current_version} matches ${base_ref}, but it is not published yet; allowing release retry"
+		return 0
+	fi
+
+	die "${chart_dir} version must increase relative to ${base_ref} (${previous_version} -> ${current_version})"
 }
 
 version_check() {
 	local base_ref=""
 	local head_ref=""
+	local allow_unpublished_reuse=false
 	local chart_dir
 	local -a changed_chart_dirs=()
 
@@ -191,6 +209,10 @@ version_check() {
 			[ "$#" -ge 2 ] || die "--head requires a ref"
 			head_ref="$2"
 			shift 2
+			;;
+		--allow-unpublished-reuse)
+			allow_unpublished_reuse=true
+			shift
 			;;
 		*)
 			die "Unexpected argument for version check: $1"
@@ -208,7 +230,7 @@ version_check() {
 	fi
 
 	for chart_dir in "${changed_chart_dirs[@]}"; do
-		check_chart_version_bump "${chart_dir}" "${base_ref}"
+		check_chart_version_bump "${chart_dir}" "${base_ref}" "${allow_unpublished_reuse}"
 	done
 }
 

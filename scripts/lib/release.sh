@@ -18,6 +18,44 @@ chart_exists_in_registry() {
 		>/dev/null 2>&1
 }
 
+chart_version_is_published() {
+	local chart_name_value="$1"
+	local chart_version_value="$2"
+	local registry="${REGISTRY:-ghcr.io}"
+	local oci_namespace="${OCI_NAMESPACE:-${GITHUB_REPOSITORY:-}}"
+	local registry_url="https://${registry}"
+	local manifest_url="${registry_url}/v2/${oci_namespace}/${chart_name_value}/manifests/${chart_version_value}"
+	local http_status
+	local registry_user="${GITHUB_ACTOR:-${CHART_TOOL_RELEASE_AUTHOR_NAME}}"
+
+	[ -n "${oci_namespace}" ] || die "OCI_NAMESPACE or GITHUB_REPOSITORY must be set to check whether ${chart_name_value}:${chart_version_value} is already published in ${registry}"
+	[ -n "${GITHUB_TOKEN:-}" ] || die "GITHUB_TOKEN must be set to check whether ${chart_name_value}:${chart_version_value} is already published in ${registry}"
+	require_command curl
+
+	http_status="$(
+		curl \
+			-sS \
+			-I \
+			-u "${registry_user}:${GITHUB_TOKEN}" \
+			-H 'Accept: application/vnd.oci.image.manifest.v1+json, application/vnd.oci.artifact.manifest.v1+json, application/vnd.docker.distribution.manifest.v2+json' \
+			-o /dev/null \
+			-w "%{http_code}" \
+			"${manifest_url}"
+	)"
+
+	case "${http_status}" in
+	2*)
+		return 0
+		;;
+	404)
+		return 1
+		;;
+	*)
+		die "Unable to check whether ${chart_name_value}:${chart_version_value} is published in ${registry} (${http_status})"
+		;;
+	esac
+}
+
 fetch_registry_manifest_digest() {
 	local chart_name_value="$1"
 	local chart_version_value="$2"
