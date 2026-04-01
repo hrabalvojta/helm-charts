@@ -8,7 +8,6 @@ sources:
   - https://github.com/gchq/CyberChef
 keywords:
   - cyberchef
-  - security
 type: application
 version: 0.2.2
 appVersion: "v10.22.1"  # renovate: datasource=docker depName=docker.io/mpepping/cyberchef
