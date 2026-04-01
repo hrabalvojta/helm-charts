@@ -3,7 +3,29 @@ entries:
   cyberchef:
   - apiVersion: v2
     appVersion: v10.22.1
-    created: "2026-04-01T22:04:45.59673612Z"
+    created: "2026-04-01T22:29:54.089696427Z"
+    description: The Cyber Swiss Army Knife - a web app for encryption, encoding,
+      compression and data analysis
+    digest: 03a367a2cec4fe89cb8551e8f236dbd1479c82a656eb32914106b6e25892ebb9
+    home: https://github.com/hrabalvojta/helm-charts/tree/main/charts/cyberchef
+    icon: https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/cyberchef.svg
+    keywords:
+    - cyberchef
+    kubeVersion: '>=1.23.0-0'
+    maintainers:
+    - email: hrabalvojtech@gmail.com
+      name: Vojtech Hrabal
+      url: https://github.com/hrabalvojta
+    name: cyberchef
+    sources:
+    - https://github.com/gchq/CyberChef
+    type: application
+    urls:
+    - https://hrabalvojta.github.io/helm-charts/charts/cyberchef-0.2.6.tgz
+    version: 0.2.6
+  - apiVersion: v2
+    appVersion: v10.22.1
+    created: "2026-04-01T22:29:54.089021111Z"
     description: The Cyber Swiss Army Knife - a web app for encryption, encoding,
       compression and data analysis
     digest: c930909d475704438f23e72498d69cbf28a79fb8f2796d5ad12f50bed63e6d00
@@ -25,7 +47,7 @@ entries:
     version: 0.2.5
   - apiVersion: v2
     appVersion: v10.22.1
-    created: "2026-04-01T22:04:45.596023213Z"
+    created: "2026-04-01T22:29:54.088270746Z"
     description: The Cyber Swiss Army Knife - a web app for encryption, encoding,
       compression and data analysis
     digest: 7732845fa296b1a4a188b08f768da057c81b0ccca30e5a660b13238daa97917e
@@ -47,7 +69,7 @@ entries:
     version: 0.2.4
   - apiVersion: v2
     appVersion: v10.22.1
-    created: "2026-04-01T22:04:45.595319314Z"
+    created: "2026-04-01T22:29:54.086513357Z"
     description: The Cyber Swiss Army Knife - a web app for encryption, encoding,
       compression and data analysis
     digest: 442bf75f9b6f47cc52bf9b39b5832f294901bac552e3a51a8892ddfeb7535589
@@ -69,7 +91,7 @@ entries:
     version: 0.2.3
   - apiVersion: v2
     appVersion: v10.22.1
-    created: "2026-04-01T22:04:45.594641483Z"
+    created: "2026-04-01T22:29:54.08584797Z"
     description: The Cyber Swiss Army Knife - a web app for encryption, encoding,
       compression and data analysis
     digest: 1718737715435565dd1e70785eddfbab7b8692948da52fd17842760f00c6ba38
@@ -92,7 +114,7 @@ entries:
     version: 0.2.2
   - apiVersion: v2
     appVersion: v10.22.1
-    created: "2026-04-01T22:04:45.594019106Z"
+    created: "2026-04-01T22:29:54.085174918Z"
     description: The Cyber Swiss Army Knife - a web app for encryption, encoding,
       compression and data analysis
     digest: e30c095925f896146cfd6f416f83141c3760b45426f0d5bebd98a7ab9f9335ef
@@ -115,7 +137,7 @@ entries:
     version: 0.2.1
   - apiVersion: v2
     appVersion: v10.22.1
-    created: "2026-04-01T22:04:45.593352276Z"
+    created: "2026-04-01T22:29:54.084517706Z"
     description: The Cyber Swiss Army Knife - a web app for encryption, encoding,
       compression and data analysis
     digest: 5f15ecedef913030a14cd6aed24e7d5a0e6fed54fd2d3eb792b4736fb704b2a8
@@ -138,7 +160,7 @@ entries:
     version: 0.2.0
   - apiVersion: v2
     appVersion: v10.22.1
-    created: "2026-04-01T22:04:45.592674695Z"
+    created: "2026-04-01T22:29:54.083875812Z"
     description: The Cyber Swiss Army Knife - a web app for encryption, encoding,
       compression and data analysis
     digest: b1b69c2d8790008d25ed3cae58c52d5f02e6a2b7d06b717bda2f01c9b192e4cb
@@ -161,7 +183,7 @@ entries:
     version: 0.1.16
   - apiVersion: v2
     appVersion: v10.22.1
-    created: "2026-04-01T22:04:45.592091091Z"
+    created: "2026-04-01T22:29:54.083220454Z"
     description: The Cyber Swiss Army Knife - a web app for encryption, encoding,
       compression and data analysis
     digest: 1145b85380d687a109c172da47930de2dee90eb1b052dc84c0b7a9a7b615c55f
@@ -184,7 +206,7 @@ entries:
     version: 0.1.15
   - apiVersion: v2
     appVersion: v10.22.1
-    created: "2026-04-01T22:04:45.591496997Z"
+    created: "2026-04-01T22:29:54.082688755Z"
     description: The Cyber Swiss Army Knife - a web app for encryption, encoding,
       compression and data analysis
     digest: 75debaf94aa48eead5648b41b90ec327ea602de3734602f31f938e9b974c1dfe
@@ -207,7 +229,7 @@ entries:
     version: 0.1.14
   - apiVersion: v2
     appVersion: v10.22.1
-    created: "2026-04-01T22:04:45.589857046Z"
+    created: "2026-04-01T22:29:54.082175Z"
     description: The Cyber Swiss Army Knife - a web app for encryption, encoding,
       compression and data analysis
     digest: bc6c4b941a4e4022726156dddc859a9b7fd39ce6fb114a14c8128bb01e0033c8
@@ -230,7 +252,7 @@ entries:
     version: 0.1.13
   - apiVersion: v2
     appVersion: v10.22.1
-    created: "2026-04-01T22:04:45.589349535Z"
+    created: "2026-04-01T22:29:54.081600311Z"
     description: The Cyber Swiss Army Knife - a web app for encryption, encoding,
       compression and data analysis
     digest: d6a7d4459cc9d8da1203e579740e3b194de67ab193b7a4035842a08faa4651b0
@@ -253,7 +275,7 @@ entries:
     version: 0.1.12
   - apiVersion: v2
     appVersion: v10.22.1
-    created: "2026-04-01T22:04:45.588860658Z"
+    created: "2026-04-01T22:29:54.08108372Z"
     description: The Cyber Swiss Army Knife - a web app for encryption, encoding,
       compression and data analysis
     digest: e85f856e54d8cdff859a8e0a30ba2bd20aa9751c50e0800312e4f54d9fd92614
@@ -274,4 +296,4 @@ entries:
     urls:
     - https://hrabalvojta.github.io/helm-charts/charts/cyberchef-0.1.11.tgz
     version: 0.1.11
-generated: "2026-04-01T22:04:45.588204338Z"
+generated: "2026-04-01T22:29:54.08035762Z"
