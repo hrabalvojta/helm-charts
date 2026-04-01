@@ -166,10 +166,15 @@ jobs:
           install-kube-score: "true"
           install-yq: "true"
 
+      - name: Authenticate Helm registry client
+        run: |
+          set -euo pipefail
+          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login "${REGISTRY}" \
+            --username "${{ github.actor }}" \
+            --password-stdin
+
       - name: Enforce version bumps on release branch
         if: github.event_name == 'push' && needs.detect.outputs.changed == 'true'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: ./scripts/chart-tool.sh version check --base "${{ github.event.before }}" --head "${{ github.sha }}" --allow-unpublished-reuse
 
       - name: Authenticate to GHCR for OCI signing clients
@@ -178,13 +183,6 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Authenticate Helm registry client
-        run: |
-          set -euo pipefail
-          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login "${REGISTRY}" \
-            --username "${{ github.actor }}" \
-            --password-stdin
 
       - name: Publish charts and update gh-pages
         env:

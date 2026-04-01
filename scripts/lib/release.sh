@@ -11,49 +11,39 @@ chart_exists_in_registry() {
 	local registry_check_dir="$3"
 	local registry="${REGISTRY:-ghcr.io}"
 	local oci_namespace="${OCI_NAMESPACE:-${GITHUB_REPOSITORY}}"
+	local pull_output=""
 
-	helm pull "oci://${registry}/${oci_namespace}/${chart_name_value}" \
-		--version "${chart_version_value}" \
-		--destination "${registry_check_dir}" \
-		>/dev/null 2>&1
+	if pull_output="$(
+		helm pull "oci://${registry}/${oci_namespace}/${chart_name_value}" \
+			--version "${chart_version_value}" \
+			--destination "${registry_check_dir}" 2>&1
+	)"; then
+		return 0
+	fi
+
+	if grep -Eqi 'manifest unknown|not found|unknown tag' <<<"${pull_output}"; then
+		return 1
+	fi
+
+	printf '%s\n' "${pull_output}" >&2
+	die "Unable to determine whether ${chart_name_value}:${chart_version_value} exists in ${registry}"
 }
 
 chart_version_is_published() {
 	local chart_name_value="$1"
 	local chart_version_value="$2"
-	local registry="${REGISTRY:-ghcr.io}"
-	local oci_namespace="${OCI_NAMESPACE:-${GITHUB_REPOSITORY:-}}"
-	local registry_url="https://${registry}"
-	local manifest_url="${registry_url}/v2/${oci_namespace}/${chart_name_value}/manifests/${chart_version_value}"
-	local http_status
-	local registry_user="${GITHUB_ACTOR:-${CHART_TOOL_RELEASE_AUTHOR_NAME}}"
+	local registry_check_dir
+	local status=1
 
-	[ -n "${oci_namespace}" ] || die "OCI_NAMESPACE or GITHUB_REPOSITORY must be set to check whether ${chart_name_value}:${chart_version_value} is already published in ${registry}"
-	[ -n "${GITHUB_TOKEN:-}" ] || die "GITHUB_TOKEN must be set to check whether ${chart_name_value}:${chart_version_value} is already published in ${registry}"
-	require_command curl
+	require_command helm
 
-	http_status="$(
-		curl \
-			-sS \
-			-I \
-			-u "${registry_user}:${GITHUB_TOKEN}" \
-			-H 'Accept: application/vnd.oci.image.manifest.v1+json, application/vnd.oci.artifact.manifest.v1+json, application/vnd.docker.distribution.manifest.v2+json' \
-			-o /dev/null \
-			-w "%{http_code}" \
-			"${manifest_url}"
-	)"
+	registry_check_dir="$(mktemp -d)"
+	if chart_exists_in_registry "${chart_name_value}" "${chart_version_value}" "${registry_check_dir}"; then
+		status=0
+	fi
+	rm -rf "${registry_check_dir}"
 
-	case "${http_status}" in
-	2*)
-		return 0
-		;;
-	404)
-		return 1
-		;;
-	*)
-		die "Unable to check whether ${chart_name_value}:${chart_version_value} is published in ${registry} (${http_status})"
-		;;
-	esac
+	return "${status}"
 }
 
 fetch_registry_manifest_digest() {
