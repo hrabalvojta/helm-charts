@@ -20,6 +20,28 @@ The Cyber Swiss Army Knife - a web app for encryption, encoding, compression and
 
 Kubernetes: `>=1.23.0-0`
 
+## Installation
+
+Add the HV helm charts repository and install chart with the release name my-cyberchef
+
+```bash
+helm repo add hv-charts https://hrabalvojta.github.io/helm-charts
+helm install my-cyberchef hv-charts/cyberchef --version 0.2.2
+```
+
+Or alternatively you can use oci:
+
+```bash
+helm install my-cyberchef oci://ghcr.io/hrabalvojta/helm-charts/cyberchef --version 0.2.2
+```
+
+```console
+cosign verify \
+  --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
+  --certificate-identity-regexp='^https://github.com/hrabalvojta/helm-charts/.github/workflows/release.yaml@.+$' \
+  ghcr.io/hrabalvojta/helm-charts/cyberchef:0.2.2
+```
+
 ## Values
 
 | Key | Type | Default | Description |

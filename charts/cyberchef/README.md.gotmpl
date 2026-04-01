@@ -1,0 +1,41 @@
+{{ template "chart.header" . }}
+{{ template "chart.deprecationWarning" . }}
+
+{{ template "chart.badgesSection" . }}
+
+{{ template "chart.description" . }}
+
+{{ template "chart.homepageLine" . }}
+
+{{ template "chart.maintainersSection" . }}
+
+{{ template "chart.sourcesSection" . }}
+
+{{ template "chart.requirementsSection" . }}
+
+
+## Installation
+
+Add the HV helm charts repository and install chart with the release name my-{{ template "chart.name" . }}
+
+```bash
+helm repo add hv-charts https://hrabalvojta.github.io/helm-charts
+helm install my-{{ template "chart.name" . }} hv-charts/{{ template "chart.name" . }} --version {{ template "chart.version" . }}
+```
+
+Or alternatively you can use oci:
+
+```bash
+helm install my-{{ template "chart.name" . }} oci://ghcr.io/hrabalvojta/helm-charts/{{ template "chart.name" . }} --version {{ template "chart.version" . }}
+```
+
+```console
+cosign verify \
+  --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
+  --certificate-identity-regexp='^https://github.com/hrabalvojta/helm-charts/.github/workflows/release.yaml@.+$' \
+  ghcr.io/hrabalvojta/helm-charts/{{ template "chart.name" . }}:{{ template "chart.version" . }}
+```
+
+{{ template "chart.valuesSection" . }}
+
+{{ template "helm-docs.versionFooter" . }}
