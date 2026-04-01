@@ -113,7 +113,7 @@ cosign verify \
 | serviceAccount.automount | bool | `false` |  |
 | serviceAccount.create | bool | `true` |  |
 | serviceAccount.name | string | `""` |  |
-| strategy.type | string | `"RollingUpdate"` |  |
+| strategy | object | `{"type":"RollingUpdate"}` | Suggest recreate for persistance enabled and RollingUpdate for persistance disabled |
 | tolerations | list | `[]` |  |
 | volumeMounts | list | `[]` |  |
 | volumes | list | `[]` |  |
