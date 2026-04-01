@@ -35,7 +35,7 @@ Or alternatively you can use oci:
 helm install my-cyberchef oci://ghcr.io/hrabalvojta/helm-charts/cyberchef --version 0.2.3
 ```
 
-```console
+```bash
 cosign verify \
   --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
   --certificate-identity-regexp='^https://github.com/hrabalvojta/helm-charts/.github/workflows/release.yaml@.+$' \
