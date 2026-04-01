@@ -14,6 +14,7 @@
     "podLabels",
     "podSecurityContext",
     "securityContext",
+    "strategy",
     "env",
     "extraEnv",
     "service",
@@ -504,6 +505,26 @@
         "runAsUser": {
           "type": "integer",
           "minimum": 1
+        }
+      }
+    },
+    "strategy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "Recreate",
+            "RollingUpdate"
+          ]
+        },
+        "rollingUpdate": {
+          "type": "object",
+          "additionalProperties": true
         }
       }
     },

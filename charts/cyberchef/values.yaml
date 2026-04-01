@@ -54,6 +54,10 @@ securityContext:
   runAsNonRoot: true
   runAsUser: 10001
 
+# -- Suggest recreate for persistance enabled and RollingUpdate for persistance disabled
+strategy:
+  type: RollingUpdate
+
 # -- Default environment variables for the CyberChef container.
 env:
   TZ: UTC
