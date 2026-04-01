@@ -54,6 +54,15 @@ securityContext:
   runAsNonRoot: true
   runAsUser: 10001
 
+# -- Default environment variables for the CyberChef container.
+env:
+  TZ: UTC
+
+# -- Additional Kubernetes `env` entries appended to the CyberChef container.
+extraEnv: []
+  # - name: SOME_VAR
+  #   value: some-value
+
 # This is for setting up a service.
 # More information can be found here:
 # https://kubernetes.io/docs/concepts/services-networking/service/
@@ -171,12 +180,15 @@ podDisruptionBudget:
   enabled: true
   maxUnavailable: 1
 
-# This section is for setting up PVC for /data
+# This section is for setting up persistent storage
 persistence:
   enabled: false
   accessMode: ReadWriteOnce
+  mountPath: /data
   size: 1Gi
-  storageClass: ""  # Optional: Use for specific storage class
+  # -- Keep the PVC resource when uninstalling the Helm release.
+  retain: false
+  storageClass: ""  # Optional: Use a specific storage class.
 
 # Additional volumes on the output Deployment definition.
 volumes: []
@@ -190,6 +202,16 @@ volumeMounts: []
   # - name: foo
   #   mountPath: "/etc/foo"
   #   readOnly: true
+
+# -- Additional Kubernetes manifests rendered by this chart.
+extraObjects: []
+  # - apiVersion: v1
+  #   kind: Secret
+  #   metadata:
+  #     name: my-extra-secret
+  #   type: Opaque
+  #   stringData:
+  #     key: value
 
 nodeSelector: {}
 

@@ -14,6 +14,8 @@
     "podLabels",
     "podSecurityContext",
     "securityContext",
+    "env",
+    "extraEnv",
     "service",
     "networkPolicy",
     "ingress",
@@ -26,6 +28,7 @@
     "persistence",
     "volumes",
     "volumeMounts",
+    "extraObjects",
     "nodeSelector",
     "tolerations",
     "affinity"
@@ -504,6 +507,35 @@
         }
       }
     },
+    "env": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "extraEnv": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "value": {
+            "type": "string"
+          },
+          "valueFrom": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      }
+    },
     "service": {
       "type": "object",
       "additionalProperties": false,
@@ -761,6 +793,7 @@
       "required": [
         "enabled",
         "accessMode",
+        "mountPath",
         "size",
         "storageClass"
       ],
@@ -777,8 +810,15 @@
             "ReadWriteOncePod"
           ]
         },
+        "mountPath": {
+          "type": "string",
+          "minLength": 1
+        },
         "size": {
           "$ref": "#/definitions/memoryQuantity"
+        },
+        "retain": {
+          "type": "boolean"
         },
         "storageClass": {
           "type": "string"
@@ -831,6 +871,14 @@
             "minLength": 1
           }
         }
+      }
+    },
+    "extraObjects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "minProperties": 1,
+        "additionalProperties": true
       }
     },
     "nodeSelector": {

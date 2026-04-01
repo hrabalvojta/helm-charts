@@ -1,6 +1,6 @@
 # cyberchef
 
-![Version: 0.2.3](https://img.shields.io/badge/Version-0.2.3-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v10.22.1](https://img.shields.io/badge/AppVersion-v10.22.1-informational?style=flat-square)
+![Version: 0.2.4](https://img.shields.io/badge/Version-0.2.4-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v10.22.1](https://img.shields.io/badge/AppVersion-v10.22.1-informational?style=flat-square)
 
 The Cyber Swiss Army Knife - a web app for encryption, encoding, compression and data analysis
 
@@ -26,20 +26,20 @@ Add the HV helm charts repository and install chart with the release name my-cyb
 
 ```bash
 helm repo add hv-charts https://hrabalvojta.github.io/helm-charts
-helm install my-cyberchef hv-charts/cyberchef --version 0.2.3
+helm install my-cyberchef hv-charts/cyberchef --version 0.2.4
 ```
 
 Or alternatively you can use oci:
 
 ```bash
-helm install my-cyberchef oci://ghcr.io/hrabalvojta/helm-charts/cyberchef --version 0.2.3
+helm install my-cyberchef oci://ghcr.io/hrabalvojta/helm-charts/cyberchef --version 0.2.4
 ```
 
 ```bash
 cosign verify \
   --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
   --certificate-identity-regexp='^https://github.com/hrabalvojta/helm-charts/.github/workflows/release.yaml@.+$' \
-  ghcr.io/hrabalvojta/helm-charts/cyberchef:0.2.3
+  ghcr.io/hrabalvojta/helm-charts/cyberchef:0.2.4
 ```
 
 ## Values
@@ -51,6 +51,9 @@ cosign verify \
 | autoscaling.maxReplicas | int | `100` |  |
 | autoscaling.minReplicas | int | `1` |  |
 | autoscaling.targetCPUUtilizationPercentage | int | `80` |  |
+| env | object | `{"TZ":"UTC"}` | Default environment variables for the CyberChef container. |
+| extraEnv | list | `[]` | Additional Kubernetes `env` entries appended to the CyberChef container. |
+| extraObjects | list | `[]` | Additional Kubernetes manifests rendered by this chart. |
 | fullnameOverride | string | `""` |  |
 | httpRoute | object | `{"annotations":{},"enabled":false,"hostnames":["chart-example.local"],"parentRefs":[{"name":"gateway","sectionName":"http"}],"rules":[{"matches":[{"path":{"type":"PathPrefix","value":"/headers"}}]}]}` | Expose the service via gateway-api HTTPRoute Requires Gateway API resources and suitable controller installed within the cluster (see: https://gateway-api.sigs.k8s.io/guides/) |
 | image.pullPolicy | string | `"Always"` |  |
@@ -75,6 +78,8 @@ cosign verify \
 | nodeSelector | object | `{}` |  |
 | persistence.accessMode | string | `"ReadWriteOnce"` |  |
 | persistence.enabled | bool | `false` |  |
+| persistence.mountPath | string | `"/data"` |  |
+| persistence.retain | bool | `false` | Keep the PVC resource when uninstalling the Helm release. |
 | persistence.size | string | `"1Gi"` |  |
 | persistence.storageClass | string | `""` |  |
 | podAnnotations | object | `{}` |  |

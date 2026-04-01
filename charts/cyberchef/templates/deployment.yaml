@@ -40,6 +40,18 @@ spec:
           {{- end }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- if or .Values.env .Values.extraEnv }}
+          env:
+            {{- with .Values.env }}
+            {{- range $name, $value := . }}
+            - name: {{ $name }}
+              value: {{ $value | quote }}
+            {{- end }}
+            {{- end }}
+            {{- with .Values.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- end }}
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}
@@ -59,7 +71,7 @@ spec:
           {{- if or .Values.persistence.enabled .Values.volumeMounts }}
           volumeMounts:
             {{- if .Values.persistence.enabled }}
-            - mountPath: "/data"
+            - mountPath: {{ .Values.persistence.mountPath | quote }}
               name: data
             {{- end }}
             {{- with .Values.volumeMounts }}
