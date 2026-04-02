@@ -902,6 +902,18 @@
         "additionalProperties": true
       }
     },
+    "config": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "default_conf": {
+          "type": "string"
+        },
+        "nginx_conf": {
+          "type": "string"
+        }
+      }
+    },
     "nodeSelector": {
       "type": "object",
       "additionalProperties": {

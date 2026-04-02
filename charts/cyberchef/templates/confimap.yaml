@@ -1,0 +1,13 @@
+{{- $config := .Values.config | default (dict) -}}
+{{- $defaultConf := $config.default_conf | default (.Files.Get "files/default.conf") -}}
+{{- $nginxConf := $config.nginx_conf | default (.Files.Get "files/nginx.conf") -}}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "cyberchef.fullname" . }}-config
+  labels:
+    {{- include "cyberchef.labels" . | nindent 4 }}
+data:
+  default.conf: | {{ tpl $defaultConf . | trimSuffix "\n" | nindent 4 }}
+  nginx.conf: | {{ tpl $nginxConf . | trimSuffix "\n" | nindent 4 }}
