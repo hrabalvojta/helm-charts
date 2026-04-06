@@ -123,7 +123,9 @@ release_asset_expected_sha256() {
 	[ -n "${checksum_asset_json}" ] || die "No checksum asset was published for ${asset_name}"
 
 	checksum_asset_url="$(jq -r '.browser_download_url' <<<"${checksum_asset_json}")"
-	[ -n "${checksum_asset_url}" ] && [ "${checksum_asset_url}" != "null" ] || die "Checksum asset download URL missing for ${asset_name}"
+	if [ -z "${checksum_asset_url}" ] || [ "${checksum_asset_url}" = "null" ]; then
+		die "Checksum asset download URL missing for ${asset_name}"
+	fi
 
 	checksum_file="$(mktemp)"
 	download_url_to_file "${checksum_asset_url}" "${checksum_file}"
@@ -144,7 +146,9 @@ download_verified_release_asset() {
 	require_command jq
 
 	asset_url="$(jq -r '.browser_download_url' <<<"${asset_json}")"
-	[ -n "${asset_url}" ] && [ "${asset_url}" != "null" ] || die "Release asset download URL missing"
+	if [ -z "${asset_url}" ] || [ "${asset_url}" = "null" ]; then
+		die "Release asset download URL missing"
+	fi
 
 	expected_digest="$(release_asset_expected_sha256 "${release_json}" "${asset_json}")"
 	download_url_to_file "${asset_url}" "${destination_path}"
