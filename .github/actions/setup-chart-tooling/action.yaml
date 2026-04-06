@@ -94,20 +94,28 @@ runs:
         mkdir -p "${RUNNER_TEMP}/bin"
         printf '%s\n' "${RUNNER_TEMP}/bin" >> "${GITHUB_PATH}"
 
-    - name: Setup PATH for Python tools
+    - name: Setup PATH for isolated Python tools
       if: inputs.install-yamllint == 'true'
       shell: bash
       run: |
         set -euo pipefail
-        printf '%s\n' "${HOME}/.local/bin" >> "${GITHUB_PATH}"
+        python_tools_dir="${RUNNER_TEMP}/python-tools"
+        mkdir -p "${python_tools_dir}"
+        printf '%s\n' "${python_tools_dir}/venv/bin" >> "${GITHUB_PATH}"
 
     - name: Install yamllint
       if: inputs.install-yamllint == 'true'
       shell: bash
       run: |
         set -euo pipefail
-        python3 -m ensurepip --upgrade >/dev/null
-        python3 -m pip install --user --disable-pip-version-check --no-input "yamllint==${{ inputs.yamllint-version }}"
+        python_tools_dir="${RUNNER_TEMP}/python-tools"
+        python_env_dir="${python_tools_dir}/venv"
+
+        if [ ! -x "${python_env_dir}/bin/python" ]; then
+          python3 -m venv "${python_env_dir}"
+        fi
+
+        "${python_env_dir}/bin/python" -m pip install --disable-pip-version-check --no-input "yamllint==${{ inputs.yamllint-version }}"
 
     - name: Install yq
       if: inputs.install-yq == 'true'
