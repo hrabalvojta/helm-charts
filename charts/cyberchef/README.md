@@ -10,7 +10,7 @@ The Cyber Swiss Army Knife - a web app for encryption, encoding, compression and
 
 This repository provides production-ready Helm charts with a strong focus on automation, security, and reliable Kubernetes deployments. It is designed to support consistent delivery through strict CI validation, deterministic release workflows, and automated dependency management. Security is built into both the delivery pipeline and the chart defaults, including signed releases, verifiable artifacts, and hardened Kubernetes settings. The goal is to make production deployments safer, more repeatable, and easier to maintain.
 
-## Pod Security Admission (PSA) Support v1.35
+## Pod Security Admission (PSA) Support version 1.35
 
 | Mode    | Level      | Supported | Description                                                                                                        |
 | ------- | ---------- | --------- | ------------------------------------------------------------------------------------------------------------------ |
