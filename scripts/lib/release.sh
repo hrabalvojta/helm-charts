@@ -617,8 +617,12 @@ publish_github_release() {
 
 	upload_url="$(jq -r '.upload_url' <<<"${release_json}")"
 	release_url="$(jq -r '.html_url' <<<"${release_json}")"
-	[ -n "${upload_url}" ] && [ "${upload_url}" != "null" ] || die "GitHub release upload URL missing for ${tag_name}"
-	[ -n "${release_url}" ] && [ "${release_url}" != "null" ] || die "GitHub release URL missing for ${tag_name}"
+	if [ -z "${upload_url}" ] || [ "${upload_url}" = "null" ]; then
+		die "GitHub release upload URL missing for ${tag_name}"
+	fi
+	if [ -z "${release_url}" ] || [ "${release_url}" = "null" ]; then
+		die "GitHub release URL missing for ${tag_name}"
+	fi
 
 	for asset_path in "${asset_paths[@]}"; do
 		[ -f "${asset_path}" ] || die "Release asset not found: ${asset_path}"
