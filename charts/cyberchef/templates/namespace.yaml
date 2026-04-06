@@ -1,0 +1,20 @@
+{{- if .Values.namespace.create -}}
+{{- $namespaceName := .Release.Namespace -}}
+{{- if lookup "v1" "Namespace" "" $namespaceName -}}
+{{- fail (printf "namespace.create=true but namespace %q already exists; manage existing namespaces outside this chart" $namespaceName) -}}
+{{- end }}
+{{- $namespaceLabels := include "cyberchef.namespaceLabels" . | trim -}}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ $namespaceName }}
+  annotations:
+    helm.sh/resource-policy: keep
+    {{- with .Values.namespace.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- if $namespaceLabels }}
+  labels:
+    {{- $namespaceLabels | nindent 4 }}
+  {{- end }}
+{{- end }}

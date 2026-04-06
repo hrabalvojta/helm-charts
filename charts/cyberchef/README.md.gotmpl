@@ -7,12 +7,25 @@
 
 {{ template "chart.homepageLine" . }}
 
+## Chart repo description
+
+This repository provides production-ready Helm charts with a strong focus on automation, security, and reliable Kubernetes deployments. It is designed to support consistent delivery through strict CI validation, deterministic release workflows, and automated dependency management. Security is built into both the delivery pipeline and the chart defaults, including signed releases, verifiable artifacts, and hardened Kubernetes settings. The goal is to make production deployments safer, more repeatable, and easier to maintain.
+
+## Pod Security Admission (PSA) Support
+
+| Mode    | Level      | Supported | Description                                                                                                        |
+| ------- | ---------- | --------- | ------------------------------------------------------------------------------------------------------------------ |
+| enforce | restricted | ✅ Yes     | Chart is fully compliant with the **restricted** profile. Pods will run successfully when this policy is enforced. |
+| enforce | baseline   | ✅ Yes     | Chart meets **baseline** requirements.                                                                             |
+| enforce | privileged | ✅ Yes     | Not required; chart does not rely on privileged features.                                                          |
+| warn    | restricted | ✅ Yes     | No warnings expected when using restricted profile.                                                                |
+| audit   | restricted | ✅ Yes     | No audit violations expected.                      
+
 {{ template "chart.maintainersSection" . }}
 
 {{ template "chart.sourcesSection" . }}
 
 {{ template "chart.requirementsSection" . }}
-
 
 ## Installation
 

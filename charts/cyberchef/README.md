@@ -1,10 +1,24 @@
 # cyberchef
 
-![Version: 0.2.7](https://img.shields.io/badge/Version-0.2.7-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v10.22.1](https://img.shields.io/badge/AppVersion-v10.22.1-informational?style=flat-square)
+![Version: 0.2.8](https://img.shields.io/badge/Version-0.2.8-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v10.22.1](https://img.shields.io/badge/AppVersion-v10.22.1-informational?style=flat-square)
 
 The Cyber Swiss Army Knife - a web app for encryption, encoding, compression and data analysis
 
 **Homepage:** <https://github.com/hrabalvojta/helm-charts/tree/main/charts/cyberchef>
+
+## Chart repo description
+
+This repository provides production-ready Helm charts with a strong focus on automation, security, and reliable Kubernetes deployments. It is designed to support consistent delivery through strict CI validation, deterministic release workflows, and automated dependency management. Security is built into both the delivery pipeline and the chart defaults, including signed releases, verifiable artifacts, and hardened Kubernetes settings. The goal is to make production deployments safer, more repeatable, and easier to maintain.
+
+## Pod Security Admission (PSA) Support
+
+| Mode    | Level      | Supported | Description                                                                                                        |
+| ------- | ---------- | --------- | ------------------------------------------------------------------------------------------------------------------ |
+| enforce | restricted | ✅ Yes     | Chart is fully compliant with the **restricted** profile. Pods will run successfully when this policy is enforced. |
+| enforce | baseline   | ✅ Yes     | Chart meets **baseline** requirements.                                                                             |
+| enforce | privileged | ✅ Yes     | Not required; chart does not rely on privileged features.                                                          |
+| warn    | restricted | ✅ Yes     | No warnings expected when using restricted profile.                                                                |
+| audit   | restricted | ✅ Yes     | No audit violations expected.                     
 
 ## Maintainers
 
@@ -26,20 +40,20 @@ Add the HV helm charts repository and install chart with the release name my-cyb
 
 ```bash
 helm repo add hv-charts https://hrabalvojta.github.io/helm-charts
-helm install my-cyberchef hv-charts/cyberchef --version 0.2.7
+helm install my-cyberchef hv-charts/cyberchef --version 0.2.8
 ```
 
 Or alternatively you can use oci:
 
 ```bash
-helm install my-cyberchef oci://ghcr.io/hrabalvojta/helm-charts/cyberchef --version 0.2.7
+helm install my-cyberchef oci://ghcr.io/hrabalvojta/helm-charts/cyberchef --version 0.2.8
 ```
 
 ```bash
 cosign verify \
   --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
   --certificate-identity-regexp='^https://github.com/hrabalvojta/helm-charts/.github/workflows/release.yaml@.+$' \
-  ghcr.io/hrabalvojta/helm-charts/cyberchef:0.2.7
+  ghcr.io/hrabalvojta/helm-charts/cyberchef:0.2.8
 ```
 
 ## Values
@@ -74,6 +88,15 @@ cosign verify \
 | livenessProbe.tcpSocket.port | string | `"http"` |  |
 | livenessProbe.timeoutSeconds | int | `5` |  |
 | nameOverride | string | `""` |  |
+| namespace | object | `{"annotations":{},"create":false,"labels":{},"psa":{"audit":"restricted","enabled":false,"enforce":"restricted","version":"latest","warn":"restricted"}}` | Optional management of the release namespace. This is intended for dedicated namespaces only. |
+| namespace.annotations | object | `{}` | Additional annotations applied to the namespace when `namespace.create=true`. |
+| namespace.create | bool | `false` | Create and label the Helm release namespace. |
+| namespace.labels | object | `{}` | Additional labels applied to the namespace when `namespace.create=true`. |
+| namespace.psa.audit | string | `"restricted"` | PSA audit profile. |
+| namespace.psa.enabled | bool | `false` | Apply Pod Security Admission labels to the namespace when `namespace.create=true`. |
+| namespace.psa.enforce | string | `"restricted"` | PSA enforce profile. |
+| namespace.psa.version | string | `"latest"` | PSA policy version. Use an explicit cluster version for predictable upgrades. |
+| namespace.psa.warn | string | `"restricted"` | PSA warn profile. |
 | networkPolicy.egress | list | `[]` |  |
 | networkPolicy.enabled | bool | `true` |  |
 | nodeSelector | object | `{}` |  |
@@ -104,7 +127,7 @@ cosign verify \
 | resources.limits.memory | string | `"512Mi"` |  |
 | resources.requests.cpu | string | `"50m"` |  |
 | resources.requests.ephemeral-storage | string | `"128Mi"` |  |
-| resources.requests.memory | string | `"64Mi"` |  |
+| resources.requests.memory | string | `"16Mi"` |  |
 | securityContext.allowPrivilegeEscalation | bool | `false` |  |
 | securityContext.capabilities.drop[0] | string | `"ALL"` |  |
 | securityContext.privileged | bool | `false` |  |

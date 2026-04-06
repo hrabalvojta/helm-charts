@@ -429,6 +429,77 @@
     "fullnameOverride": {
       "type": "string"
     },
+    "namespace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "create",
+        "annotations",
+        "labels",
+        "psa"
+      ],
+      "properties": {
+        "create": {
+          "type": "boolean"
+        },
+        "annotations": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "labels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "psa": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "enabled",
+            "enforce",
+            "warn",
+            "audit",
+            "version"
+          ],
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "enforce": {
+              "type": "string",
+              "enum": [
+                "privileged",
+                "baseline",
+                "restricted"
+              ]
+            },
+            "warn": {
+              "type": "string",
+              "enum": [
+                "privileged",
+                "baseline",
+                "restricted"
+              ]
+            },
+            "audit": {
+              "type": "string",
+              "enum": [
+                "privileged",
+                "baseline",
+                "restricted"
+              ]
+            },
+            "version": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
     "serviceAccount": {
       "type": "object",
       "additionalProperties": false,

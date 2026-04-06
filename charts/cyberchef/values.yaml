@@ -33,6 +33,26 @@ serviceAccount:
   # If not set and create is true, a name is generated using the fullname template.
   name: ""
 
+# -- Optional management of the release namespace. This is intended for dedicated namespaces only.
+namespace:
+  # -- Create and label the Helm release namespace.
+  create: false
+  # -- Additional annotations applied to the namespace when `namespace.create=true`.
+  annotations: {}
+  # -- Additional labels applied to the namespace when `namespace.create=true`.
+  labels: {}
+  psa:
+    # -- Apply Pod Security Admission labels to the namespace when `namespace.create=true`.
+    enabled: false
+    # -- PSA enforce profile.
+    enforce: restricted
+    # -- PSA warn profile.
+    warn: restricted
+    # -- PSA audit profile.
+    audit: restricted
+    # -- PSA policy version. Use an explicit cluster version for predictable upgrades.
+    version: latest
+
 # This is for setting Kubernetes Annotations to a Pod.
 # For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
 podAnnotations: {}
@@ -153,7 +173,7 @@ resources:
   requests:
     cpu: 50m
     ephemeral-storage: 128Mi
-    memory: 64Mi
+    memory: 16Mi
 
 # This is to setup the liveness and readiness probes.
 # More information can be found here:

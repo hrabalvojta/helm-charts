@@ -60,3 +60,20 @@ Create the name of the service account to use
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+{{/*
+Namespace labels, including optional PSA labels.
+*/}}
+{{- define "cyberchef.namespaceLabels" -}}
+{{- with .Values.namespace.labels }}
+{{ toYaml . }}
+{{- end }}
+{{- if .Values.namespace.psa.enabled }}
+pod-security.kubernetes.io/enforce: {{ .Values.namespace.psa.enforce | quote }}
+pod-security.kubernetes.io/enforce-version: {{ .Values.namespace.psa.version | quote }}
+pod-security.kubernetes.io/warn: {{ .Values.namespace.psa.warn | quote }}
+pod-security.kubernetes.io/warn-version: {{ .Values.namespace.psa.version | quote }}
+pod-security.kubernetes.io/audit: {{ .Values.namespace.psa.audit | quote }}
+pod-security.kubernetes.io/audit-version: {{ .Values.namespace.psa.version | quote }}
+{{- end }}
+{{- end }}
