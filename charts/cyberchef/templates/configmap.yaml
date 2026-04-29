@@ -1,0 +1,36 @@
+{{- $config := .Values.config | default (dict) -}}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "cyberchef.fullname" . }}-config
+  labels:
+    {{- include "cyberchef.labels" . | nindent 4 }}
+data:
+  default.conf: |
+    {{- if $config.default_conf }}
+    {{- $config.default_conf | trimSuffix "\n" | nindent 4 }}
+    {{- else }}
+    server {
+        listen {{ .Values.containerPort }};
+        listen [::]:{{ .Values.containerPort }};
+        server_name _;
+        root /usr/share/nginx/html;
+        index index.html;
+
+        location = /healthz {
+            access_log off;
+            return 200 "ok\n";
+        }
+
+        location / {
+            try_files $uri $uri/ /index.html;
+        }
+    }
+    {{- end }}
+  nginx.conf: |
+    {{- if $config.nginx_conf }}
+    {{- $config.nginx_conf | trimSuffix "\n" | nindent 4 }}
+    {{- else }}
+    {{- .Files.Get "files/nginx.conf" | trimSuffix "\n" | nindent 4 }}
+    {{- end }}

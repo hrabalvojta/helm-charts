@@ -16,7 +16,7 @@ spec:
   ingress:
     - ports:
         - protocol: TCP
-          port: {{ .Values.service.port }}
+          port: {{ .Values.containerPort }}
   egress:
     {{- if gt (len $egressRules) 0 }}
     {{- toYaml $egressRules | nindent 4 }}

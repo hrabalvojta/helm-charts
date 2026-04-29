@@ -383,7 +383,7 @@ sanitize_release_name() {
 }
 
 chart_default_scenarios() {
-	printf '%s\n' default ingress httproute autoscaling persistence
+	printf '%s\n' default ingress httproute autoscaling
 }
 
 scenario_template_args() {
@@ -400,10 +400,7 @@ scenario_template_args() {
 		printf '%s\n' '--set' 'httpRoute.enabled=true'
 		;;
 	autoscaling)
-		printf '%s\n' '--set' 'autoscaling.enabled=true' '--set' 'resources.requests.cpu=100m' '--set' 'resources.requests.memory=128Mi'
-		;;
-	persistence)
-		printf '%s\n' '--set' 'persistence.enabled=true'
+		printf '%s\n' '--set' 'autoscaling.enabled=true' '--set' 'autoscaling.minReplicas=2' '--set' 'podDisruptionBudget.enabled=true' '--set' 'resources.requests.cpu=100m' '--set' 'resources.requests.memory=128Mi'
 		;;
 	*)
 		die "Unsupported validation scenario: ${scenario}"

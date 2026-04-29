@@ -1,6 +1,6 @@
 # cyberchef
 
-![Version: 0.3.0](https://img.shields.io/badge/Version-0.3.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v11.0.0](https://img.shields.io/badge/AppVersion-v11.0.0-informational?style=flat-square)
+![Version: 0.4.0](https://img.shields.io/badge/Version-0.4.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v11.0.0](https://img.shields.io/badge/AppVersion-v11.0.0-informational?style=flat-square)
 
 The Cyber Swiss Army Knife - a web app for encryption, encoding, compression and data analysis
 
@@ -9,6 +9,10 @@ The Cyber Swiss Army Knife - a web app for encryption, encoding, compression and
 ## Chart repo description
 
 This repository provides production-ready Helm charts with a strong focus on automation, security, and reliable Kubernetes deployments. It is designed to support consistent delivery through strict CI validation, deterministic release workflows, and automated dependency management. Security is built into both the delivery pipeline and the chart defaults, including signed releases, verifiable artifacts, and hardened Kubernetes settings. The goal is to make production deployments safer, more repeatable, and easier to maintain.
+
+## Image provenance
+
+The default image is `docker.io/mpepping/cyberchef` because it publishes v-prefixed release tags matching the chart `appVersion`. If you prefer the upstream GCHQ image, set `image.repository=ghcr.io/gchq/cyberchef` and set the matching upstream tag explicitly. For immutable deployments, set `image.digest`.
 
 ## Pod Security Admission (PSA) Support version 1.35
 
@@ -40,20 +44,20 @@ Add the HV helm charts repository and install chart with the release name my-cyb
 
 ```bash
 helm repo add hv-charts https://hrabalvojta.github.io/helm-charts
-helm install my-cyberchef hv-charts/cyberchef --version 0.3.0
+helm install my-cyberchef hv-charts/cyberchef --version 0.4.0
 ```
 
 Or alternatively you can use oci:
 
 ```bash
-helm install my-cyberchef oci://ghcr.io/hrabalvojta/helm-charts/cyberchef --version 0.3.0
+helm install my-cyberchef oci://ghcr.io/hrabalvojta/helm-charts/cyberchef --version 0.4.0
 ```
 
 ```bash
 cosign verify \
   --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
   --certificate-identity-regexp='^https://github.com/hrabalvojta/helm-charts/.github/workflows/release.yaml@.+$' \
-  ghcr.io/hrabalvojta/helm-charts/cyberchef:0.3.0
+  ghcr.io/hrabalvojta/helm-charts/cyberchef:0.4.0
 ```
 
 ## Values
@@ -62,18 +66,20 @@ cosign verify \
 |-----|------|---------|-------------|
 | affinity | object | `{}` |  |
 | autoscaling.enabled | bool | `false` |  |
-| autoscaling.maxReplicas | int | `100` |  |
+| autoscaling.maxReplicas | int | `10` |  |
 | autoscaling.minReplicas | int | `1` |  |
 | autoscaling.targetCPUUtilizationPercentage | int | `80` |  |
 | config | object | `{"default_conf":"","nginx_conf":""}` | Optional overrides for the bundled nginx configuration files. |
+| containerPort | int | `8000` | Port exposed by the CyberChef container and nginx listener. |
 | env | object | `{"TZ":"UTC"}` | Default environment variables for the CyberChef container. |
 | extraEnv | list | `[]` | Additional Kubernetes `env` entries appended to the CyberChef container. |
 | extraObjects | list | `[]` | Additional Kubernetes manifests rendered by this chart. |
 | fullnameOverride | string | `""` |  |
-| httpRoute | object | `{"annotations":{},"enabled":false,"hostnames":["chart-example.local"],"parentRefs":[{"name":"gateway","sectionName":"http"}],"rules":[{"matches":[{"path":{"type":"PathPrefix","value":"/headers"}}]}]}` | Expose the service via gateway-api HTTPRoute Requires Gateway API resources and suitable controller installed within the cluster (see: https://gateway-api.sigs.k8s.io/guides/) |
-| image.pullPolicy | string | `"Always"` |  |
+| httpRoute | object | `{"annotations":{},"enabled":false,"hostnames":["chart-example.local"],"parentRefs":[{"name":"gateway","sectionName":"http"}],"rules":[{"matches":[{"path":{"type":"PathPrefix","value":"/"}}]}]}` | Expose the service via gateway-api HTTPRoute Requires Gateway API resources and suitable controller installed within the cluster (see: https://gateway-api.sigs.k8s.io/guides/) |
+| image.digest | string | `""` |  |
+| image.pullPolicy | string | `"IfNotPresent"` |  |
 | image.repository | string | `"docker.io/mpepping/cyberchef"` |  |
-| image.tag | string | `"v11.0.0"` |  |
+| image.tag | string | `""` |  |
 | imagePullSecrets | list | `[]` |  |
 | ingress.annotations | object | `{}` |  |
 | ingress.className | string | `""` |  |
@@ -88,26 +94,11 @@ cosign verify \
 | livenessProbe.tcpSocket.port | string | `"http"` |  |
 | livenessProbe.timeoutSeconds | int | `5` |  |
 | nameOverride | string | `""` |  |
-| namespace | object | `{"annotations":{},"create":false,"labels":{},"psa":{"audit":"restricted","enabled":false,"enforce":"restricted","version":"latest","warn":"restricted"}}` | Optional management of the release namespace. This is intended for dedicated namespaces only. |
-| namespace.annotations | object | `{}` | Additional annotations applied to the namespace when `namespace.create=true`. |
-| namespace.create | bool | `false` | Create and label the Helm release namespace. |
-| namespace.labels | object | `{}` | Additional labels applied to the namespace when `namespace.create=true`. |
-| namespace.psa.audit | string | `"restricted"` | PSA audit profile. |
-| namespace.psa.enabled | bool | `false` | Apply Pod Security Admission labels to the namespace when `namespace.create=true`. |
-| namespace.psa.enforce | string | `"restricted"` | PSA enforce profile. |
-| namespace.psa.version | string | `"latest"` | PSA policy version. Use an explicit cluster version for predictable upgrades. |
-| namespace.psa.warn | string | `"restricted"` | PSA warn profile. |
 | networkPolicy.egress | list | `[]` |  |
 | networkPolicy.enabled | bool | `true` |  |
 | nodeSelector | object | `{}` |  |
-| persistence.accessMode | string | `"ReadWriteOnce"` |  |
-| persistence.enabled | bool | `false` |  |
-| persistence.mountPath | string | `"/data"` |  |
-| persistence.retain | bool | `false` | Keep the PVC resource when uninstalling the Helm release. |
-| persistence.size | string | `"1Gi"` |  |
-| persistence.storageClass | string | `""` |  |
 | podAnnotations | object | `{}` |  |
-| podDisruptionBudget.enabled | bool | `true` |  |
+| podDisruptionBudget.enabled | bool | `false` |  |
 | podDisruptionBudget.maxUnavailable | int | `1` |  |
 | podLabels | object | `{}` |  |
 | podSecurityContext.fsGroup | int | `10001` |  |
@@ -116,29 +107,37 @@ cosign verify \
 | podSecurityContext.runAsUser | int | `10001` |  |
 | podSecurityContext.seccompProfile.type | string | `"RuntimeDefault"` |  |
 | readinessProbe.failureThreshold | int | `3` |  |
-| readinessProbe.httpGet.path | string | `"/"` |  |
+| readinessProbe.httpGet.path | string | `"/healthz"` |  |
 | readinessProbe.httpGet.port | string | `"http"` |  |
 | readinessProbe.initialDelaySeconds | int | `5` |  |
 | readinessProbe.periodSeconds | int | `10` |  |
 | readinessProbe.timeoutSeconds | int | `2` |  |
 | replicaCount | int | `1` |  |
-| resources.limits.cpu | string | `"200m"` |  |
-| resources.limits.ephemeral-storage | string | `"1Gi"` |  |
-| resources.limits.memory | string | `"512Mi"` |  |
-| resources.requests.cpu | string | `"50m"` |  |
-| resources.requests.ephemeral-storage | string | `"128Mi"` |  |
+| resources.limits.ephemeral-storage | string | `"256Mi"` |  |
+| resources.limits.memory | string | `"128Mi"` |  |
+| resources.requests.cpu | string | `"10m"` |  |
+| resources.requests.ephemeral-storage | string | `"16Mi"` |  |
 | resources.requests.memory | string | `"16Mi"` |  |
 | securityContext.allowPrivilegeEscalation | bool | `false` |  |
 | securityContext.capabilities.drop[0] | string | `"ALL"` |  |
 | securityContext.privileged | bool | `false` |  |
 | securityContext.readOnlyRootFilesystem | bool | `true` |  |
+| service.annotations | object | `{}` | Service annotations. |
+| service.appProtocol | string | `"http"` | Optional appProtocol value for the service port. |
+| service.externalName | string | `""` | Required when `service.type=ExternalName`. |
+| service.loadBalancerIP | string | `""` | Optional LoadBalancer IP when supported by the cluster. |
+| service.loadBalancerSourceRanges | list | `[]` | Optional LoadBalancer source ranges. |
+| service.nodePort | string | `""` | Optional fixed nodePort when `service.type` is `NodePort` or `LoadBalancer`. |
 | service.port | int | `8000` |  |
+| service.targetPort | string | `"http"` | Service target port. Defaults to the named container port. |
 | service.type | string | `"ClusterIP"` |  |
 | serviceAccount.annotations | object | `{}` |  |
 | serviceAccount.automount | bool | `false` |  |
 | serviceAccount.create | bool | `true` |  |
 | serviceAccount.name | string | `""` |  |
-| strategy | object | `{"type":"RollingUpdate"}` | Suggest recreate for persistance enabled and RollingUpdate for persistance disabled |
+| strategy | object | `{"type":"RollingUpdate"}` | Deployment update strategy. |
+| tmpVolume | object | `{"sizeLimit":"64Mi"}` | Settings for the writable nginx temporary directory. |
+| tmpVolume.sizeLimit | string | `"64Mi"` | Optional size limit for the `/tmp` emptyDir. |
 | tolerations | list | `[]` |  |
 | volumeMounts | list | `[]` |  |
 | volumes | list | `[]` |  |

@@ -4,10 +4,8 @@ metadata:
   name: {{ include "cyberchef.fullname" . }}
   labels:
     {{- include "cyberchef.labels" . | nindent 4 }}
-  {{- if not .Values.securityContext.readOnlyRootFilesystem }}
   annotations:
-    kube-score/ignore: container-security-context-readonlyrootfilesystem
-  {{- end }}
+    kube-score/ignore: container-resources,container-image-pull-policy{{ if not .Values.securityContext.readOnlyRootFilesystem }},container-security-context-readonlyrootfilesystem{{ end }}
 spec:
   {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
@@ -21,10 +19,11 @@ spec:
       {{- include "cyberchef.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      {{- with .Values.podAnnotations }}
       annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
-      {{- end }}
+        {{- end }}
       labels:
         {{- include "cyberchef.labels" . | nindent 8 }}
         {{- with .Values.podLabels }}
@@ -47,7 +46,7 @@ spec:
           securityContext:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          image: {{ include "cyberchef.image" . | quote }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           {{- if or .Values.env .Values.extraEnv }}
           env:
@@ -63,7 +62,7 @@ spec:
           {{- end }}
           ports:
             - name: http
-              containerPort: {{ .Values.service.port }}
+              containerPort: {{ .Values.containerPort }}
               protocol: TCP
           {{- with .Values.livenessProbe }}
           livenessProbe:
@@ -81,45 +80,35 @@ spec:
             - mountPath: /tmp
               name: tmp
             - mountPath: /etc/nginx/conf.d/default.conf
-              name: cyberchef-config-conf-d
+              name: cyberchef-config
               readOnly: true
               subPath: default.conf
             - mountPath: /etc/nginx/nginx.conf
-              name: cyberchef-config-nginx
+              name: cyberchef-config
               readOnly: true
               subPath: nginx.conf
-            {{- if .Values.persistence.enabled }}
-            - mountPath: {{ .Values.persistence.mountPath | quote }}
-              name: data
-            {{- end }}
             {{- with .Values.volumeMounts }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
       volumes:
-        - emptyDir: {}
-          name: tmp
-        - name: cyberchef-config-conf-d
+        - name: tmp
+          {{- if .Values.tmpVolume.sizeLimit }}
+          emptyDir:
+            sizeLimit: {{ .Values.tmpVolume.sizeLimit | quote }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        - name: cyberchef-config
           configMap:
             name: {{ include "cyberchef.fullname" . }}-config
             items:
-            - key: default.conf
-              path: default.conf
-        - name: cyberchef-config-nginx
-          configMap:
-            name: {{ include "cyberchef.fullname" . }}-config
-            items:
-            - key: nginx.conf
-              path: nginx.conf
-      {{- if or .Values.persistence.enabled .Values.volumes }}
-        {{- if .Values.persistence.enabled }}
-        - name: data
-          persistentVolumeClaim:
-            claimName: {{ include "cyberchef.fullname" . }}-pvc
-        {{- end }}
+              - key: default.conf
+                path: default.conf
+              - key: nginx.conf
+                path: nginx.conf
         {{- with .Values.volumes }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
-      {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

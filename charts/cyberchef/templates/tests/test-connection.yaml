@@ -3,7 +3,13 @@ kind: Pod
 metadata:
   name: "{{ include "cyberchef.fullname" . }}-test-connection"
   labels:
-    {{- include "cyberchef.labels" . | nindent 4 }}
+    helm.sh/chart: {{ include "cyberchef.chart" . }}
+    {{- if .Chart.AppVersion }}
+    app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+    {{- end }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: test
   annotations:
     "helm.sh/hook": test
 spec:
@@ -15,7 +21,7 @@ spec:
   automountServiceAccountToken: {{ .Values.serviceAccount.automount }}
   {{- with .Values.podSecurityContext }}
   securityContext:
-    {{- toYaml . | nindent 8 }}
+    {{- toYaml . | nindent 4 }}
   {{- end }}
   containers:
     - name: wget
@@ -23,7 +29,7 @@ spec:
       imagePullPolicy: {{ .Values.image.pullPolicy }}
       {{- with .Values.securityContext }}
       securityContext:
-        {{- toYaml . | nindent 12 }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
       command: ['wget']
       args: ['-qO-', 'http://{{ include "cyberchef.fullname" . }}:{{ .Values.service.port }}']
@@ -33,5 +39,10 @@ spec:
           readOnly: false
   volumes:
     - name: tmp
+      {{- if .Values.tmpVolume.sizeLimit }}
+      emptyDir:
+        sizeLimit: {{ .Values.tmpVolume.sizeLimit | quote }}
+      {{- else }}
       emptyDir: {}
+      {{- end }}
   restartPolicy: Never

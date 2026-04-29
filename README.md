@@ -41,7 +41,7 @@ GITHUB_REPOSITORY_OWNER=hrabalvojta \
 - GitHub Actions updates are grouped.
 - Container image updates are grouped.
 - Non-major dependency updates can automerge once CI is green.
-- Chart image versions are updated from explicit inline `renovate` annotations in both [`Chart.yaml`](./charts/cyberchef/Chart.yaml) and [`values.yaml`](./charts/cyberchef/values.yaml) so `appVersion` and the default image tag do not drift apart.
+- Chart app versions are updated from explicit inline `renovate` annotations in [`Chart.yaml`](./charts/cyberchef/Chart.yaml). Chart image tags default to `appVersion` unless explicitly overridden in [`values.yaml`](./charts/cyberchef/values.yaml).
 
 ## Governance
 
