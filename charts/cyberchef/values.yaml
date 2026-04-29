@@ -11,7 +11,7 @@ image:
   # This sets the pull policy for images.
   pullPolicy: Always
   # Overrides the image tag whose default is the chart appVersion.
-  tag: "v10.23.0"  # renovate: datasource=docker depName=docker.io/mpepping/cyberchef
+  tag: "v10.24.0"  # renovate: datasource=docker depName=docker.io/mpepping/cyberchef
 
 # This is for the secrets for pulling an image from a private repository.
 # More information can be found here:
