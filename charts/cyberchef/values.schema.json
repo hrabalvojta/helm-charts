@@ -34,7 +34,9 @@
     "nodeSelector",
     "tolerations",
     "affinity",
-    "config"
+    "topologySpreadConstraints",
+    "config",
+    "test"
   ],
   "definitions": {
     "cpuQuantity": {
@@ -573,11 +575,19 @@
       "additionalProperties": false,
       "required": [
         "enabled",
+        "ingressFrom",
         "egress"
       ],
       "properties": {
         "enabled": {
           "type": "boolean"
+        },
+        "ingressFrom": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
         },
         "egress": {
           "type": "array",
@@ -807,6 +817,13 @@
       "type": "object",
       "additionalProperties": true
     },
+    "topologySpreadConstraints": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
     "config": {
       "type": "object",
       "additionalProperties": false,
@@ -820,6 +837,60 @@
         },
         "nginx_conf": {
           "type": "string"
+        }
+      }
+    },
+    "test": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "image",
+        "resources"
+      ],
+      "properties": {
+        "image": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "repository",
+            "pullPolicy",
+            "tag",
+            "digest"
+          ],
+          "properties": {
+            "repository": {
+              "type": "string",
+              "minLength": 1
+            },
+            "pullPolicy": {
+              "type": "string",
+              "enum": [
+                "Always",
+                "IfNotPresent",
+                "Never"
+              ]
+            },
+            "tag": {
+              "type": "string",
+              "minLength": 1
+            },
+            "digest": {
+              "type": "string",
+              "pattern": "^(|sha256:[a-fA-F0-9]{64})$"
+            }
+          }
+        },
+        "resources": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "limits": {
+              "$ref": "#/definitions/resourceList"
+            },
+            "requests": {
+              "$ref": "#/definitions/resourceList"
+            }
+          }
         }
       }
     }

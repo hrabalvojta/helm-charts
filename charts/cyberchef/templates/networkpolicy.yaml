@@ -1,5 +1,6 @@
 {{- if .Values.networkPolicy.enabled }}
 {{- $egressRules := .Values.networkPolicy.egress | default (list) }}
+{{- $ingressFrom := .Values.networkPolicy.ingressFrom | default (list) }}
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -17,6 +18,10 @@ spec:
     - ports:
         - protocol: TCP
           port: {{ .Values.containerPort }}
+      {{- if gt (len $ingressFrom) 0 }}
+      from:
+        {{- toYaml $ingressFrom | nindent 8 }}
+      {{- end }}
   egress:
     {{- if gt (len $egressRules) 0 }}
     {{- toYaml $egressRules | nindent 4 }}

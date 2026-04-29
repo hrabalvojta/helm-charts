@@ -1,45 +1,38 @@
 # Default values for cyberchef.
-# This is a YAML-formatted file.
-# Declare variables to be passed into your templates.
 
-# This will set the replicaset count more information can be found here: https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/
+# -- Number of Deployment replicas when autoscaling is disabled.
 replicaCount: 1
 
-# This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
 image:
+  # -- Container image repository.
   repository: docker.io/mpepping/cyberchef
-  # This sets the pull policy for images.
-  pullPolicy: IfNotPresent
-  # Overrides the image tag whose default is the chart appVersion.
+  # -- Image pull policy.
+  pullPolicy: Always
+  # -- Overrides the image tag whose default is the chart appVersion.
   tag: ""
-  # Optional immutable image digest. When set, the image renders as repository:tag@digest.
+  # -- Optional immutable image digest. When set, the image renders as repository:tag@digest.
   digest: ""
 
-# This is for the secrets for pulling an image from a private repository.
-# More information can be found here:
-# https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+# -- Image pull secrets.
 imagePullSecrets: []
-# This is to override the chart name.
+# -- Override the chart name.
 nameOverride: ""
+# -- Override the fully qualified app name.
 fullnameOverride: ""
 
-# This section builds out the service account more information can be found here: https://kubernetes.io/docs/concepts/security/service-accounts/
 serviceAccount:
-  # Specifies whether a service account should be created.
+  # -- Create a service account.
   create: true
-  # Automatically mount a ServiceAccount's API credentials?
+  # -- Automatically mount service account API credentials.
   automount: false
-  # Annotations to add to the service account.
+  # -- Service account annotations.
   annotations: {}
-  # The name of the service account to use.
-  # If not set and create is true, a name is generated using the fullname template.
+  # -- Service account name. Generated when empty and `serviceAccount.create=true`.
   name: ""
 
-# This is for setting Kubernetes Annotations to a Pod.
-# For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+# -- Pod annotations.
 podAnnotations: {}
-# This is for setting Kubernetes Labels to a Pod.
-# For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+# -- Pod labels.
 podLabels: {}
 
 podSecurityContext:
@@ -74,19 +67,12 @@ extraEnv: []
 # -- Port exposed by the CyberChef container and nginx listener.
 containerPort: 8000
 
-# This is for setting up a service.
-# More information can be found here:
-# https://kubernetes.io/docs/concepts/services-networking/service/
 service:
-  # This sets the service type.
-  # More information can be found here:
-  # https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types
+  # -- Service type.
   type: ClusterIP
   # -- Service annotations.
   annotations: {}
-  # This sets the ports.
-  # More information can be found here:
-  # https://kubernetes.io/docs/concepts/services-networking/service/#field-spec-ports
+  # -- Service port.
   port: 8000
   # -- Service target port. Defaults to the named container port.
   targetPort: http
@@ -103,11 +89,12 @@ service:
 
 networkPolicy:
   enabled: true
-  # Default to deny-all egress. Add explicit rules only if the workload genuinely
-  # needs outbound network access.
+  # -- Optional ingress peer selectors for the generated NetworkPolicy. Empty allows ingress from any source to the HTTP port.
+  ingressFrom: []
+  # -- Egress rules. Empty means deny all egress.
   egress: []
 
-# This block is for setting up the ingress for more information can be found here: https://kubernetes.io/docs/concepts/services-networking/ingress/
+# -- Ingress configuration.
 ingress:
   enabled: false
   className: ""
@@ -124,23 +111,21 @@ ingress:
     #   hosts:
     #     - chart-example.local
 
-# -- Expose the service via gateway-api HTTPRoute
-# Requires Gateway API resources and suitable controller installed within the cluster
-# (see: https://gateway-api.sigs.k8s.io/guides/)
+# -- Gateway API HTTPRoute configuration.
 httpRoute:
-  # HTTPRoute enabled.
+  # -- Enable HTTPRoute.
   enabled: false
-  # HTTPRoute annotations.
+  # -- HTTPRoute annotations.
   annotations: {}
-  # Which Gateways this Route is attached to.
+  # -- Gateway parent references.
   parentRefs:
     - name: gateway
       sectionName: http
     # namespace: default
-  # Hostnames matching HTTP header.
+  # -- Hostnames matched by the HTTPRoute.
   hostnames:
     - chart-example.local
-  # List of rules and filters applied.
+  # -- HTTPRoute rules.
   rules:
     - matches:
         - path:
@@ -162,10 +147,10 @@ httpRoute:
   #     - name: version
   #       value: v2
 
+# -- Container resource requests and limits.
 resources:
-  # Conservative defaults that keep autoscaling math valid and avoid shipping an entirely
-  # unconstrained workload. Override these values if your environment requires different sizing.
   limits:
+    cpu: 200m
     ephemeral-storage: 256Mi
     memory: 128Mi
   requests:
@@ -173,9 +158,7 @@ resources:
     ephemeral-storage: 16Mi
     memory: 16Mi
 
-# This is to setup the liveness and readiness probes.
-# More information can be found here:
-# https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+# -- Liveness probe.
 livenessProbe:
   tcpSocket:
     port: http
@@ -183,6 +166,7 @@ livenessProbe:
   initialDelaySeconds: 30
   periodSeconds: 10
   timeoutSeconds: 5
+# -- Readiness probe.
 readinessProbe:
   httpGet:
     path: /healthz
@@ -192,7 +176,7 @@ readinessProbe:
   periodSeconds: 10
   timeoutSeconds: 2
 
-# This section is for setting up autoscaling more information can be found here: https://kubernetes.io/docs/concepts/workloads/autoscaling/
+# -- HorizontalPodAutoscaler configuration.
 autoscaling:
   enabled: false
   minReplicas: 1
@@ -209,14 +193,14 @@ tmpVolume:
   # -- Optional size limit for the `/tmp` emptyDir.
   sizeLimit: 64Mi
 
-# Additional volumes on the output Deployment definition.
+# -- Additional volumes appended to the Deployment pod.
 volumes: []
   # - name: foo
   #   secret:
   #     secretName: mysecret
   #     optional: false
 
-# Additional volumeMounts on the output Deployment definition.
+# -- Additional volume mounts appended to the CyberChef container.
 volumeMounts: []
   # - name: foo
   #   mountPath: "/etc/foo"
@@ -238,7 +222,32 @@ tolerations: []
 
 affinity: {}
 
+# -- Pod topology spread constraints.
+topologySpreadConstraints: []
+
 # -- Optional overrides for the bundled nginx configuration files.
 config:
   default_conf: ""
   nginx_conf: ""
+
+# -- Helm test pod configuration.
+test:
+  image:
+    # -- Helm test image repository.
+    repository: docker.io/library/busybox
+    # -- Helm test image pull policy.
+    pullPolicy: Always
+    # -- Helm test image tag.
+    tag: "1.37.0"
+    # -- Optional immutable Helm test image digest.
+    digest: ""
+  # -- Helm test pod resource requests and limits.
+  resources:
+    limits:
+      cpu: 50m
+      ephemeral-storage: 16Mi
+      memory: 32Mi
+    requests:
+      cpu: 10m
+      ephemeral-storage: 8Mi
+      memory: 16Mi

@@ -5,7 +5,7 @@ metadata:
   labels:
     {{- include "cyberchef.labels" . | nindent 4 }}
   annotations:
-    kube-score/ignore: container-resources,container-image-pull-policy{{ if not .Values.securityContext.readOnlyRootFilesystem }},container-security-context-readonlyrootfilesystem{{ end }}
+    kube-score/ignore: deployment-replicas
 spec:
   {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
@@ -126,6 +126,10 @@ spec:
                     {{- include "cyberchef.selectorLabels" . | nindent 20 }}
                 topologyKey: kubernetes.io/hostname
         {{- end }}
+      {{- with .Values.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- tpl (toYaml .) $ | nindent 8 }}
+      {{- end }}
       {{- with .Values.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}

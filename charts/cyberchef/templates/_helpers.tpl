@@ -62,13 +62,26 @@ Create the name of the service account to use
 {{- end }}
 
 {{/*
-Container image reference.
+Image reference from repository, tag, and optional digest.
+*/}}
+{{- define "cyberchef.imageReference" -}}
+{{- if .digest -}}
+{{- printf "%s:%s@%s" .repository .tag .digest }}
+{{- else -}}
+{{- printf "%s:%s" .repository .tag }}
+{{- end }}
+{{- end }}
+
+{{/*
+CyberChef container image reference.
 */}}
 {{- define "cyberchef.image" -}}
-{{- $tag := default .Chart.AppVersion .Values.image.tag -}}
-{{- if .Values.image.digest -}}
-{{- printf "%s:%s@%s" .Values.image.repository $tag .Values.image.digest }}
-{{- else -}}
-{{- printf "%s:%s" .Values.image.repository $tag }}
+{{- include "cyberchef.imageReference" (dict "repository" .Values.image.repository "tag" (default .Chart.AppVersion .Values.image.tag) "digest" .Values.image.digest) }}
 {{- end }}
+
+{{/*
+Helm test container image reference.
+*/}}
+{{- define "cyberchef.testImage" -}}
+{{- include "cyberchef.imageReference" .Values.test.image }}
 {{- end }}
