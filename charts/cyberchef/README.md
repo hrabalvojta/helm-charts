@@ -1,6 +1,6 @@
 # cyberchef
 
-![Version: 0.3.1](https://img.shields.io/badge/Version-0.3.1-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v11.0.0](https://img.shields.io/badge/AppVersion-v11.0.0-informational?style=flat-square)
+![Version: 0.3.2](https://img.shields.io/badge/Version-0.3.2-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v11.0.0](https://img.shields.io/badge/AppVersion-v11.0.0-informational?style=flat-square)
 
 The Cyber Swiss Army Knife - a web app for encryption, encoding, compression and data analysis
 
@@ -44,20 +44,20 @@ Add the HV helm charts repository and install chart with the release name my-cyb
 
 ```bash
 helm repo add hv-charts https://hrabalvojta.github.io/helm-charts
-helm install my-cyberchef hv-charts/cyberchef --version 0.3.1
+helm install my-cyberchef hv-charts/cyberchef --version 0.3.2
 ```
 
 Or alternatively you can use oci:
 
 ```bash
-helm install my-cyberchef oci://ghcr.io/hrabalvojta/helm-charts/cyberchef --version 0.3.1
+helm install my-cyberchef oci://ghcr.io/hrabalvojta/helm-charts/cyberchef --version 0.3.2
 ```
 
 ```bash
 cosign verify \
   --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
   --certificate-identity-regexp='^https://github.com/hrabalvojta/helm-charts/.github/workflows/release.yaml@.+$' \
-  ghcr.io/hrabalvojta/helm-charts/cyberchef:0.3.1
+  ghcr.io/hrabalvojta/helm-charts/cyberchef:0.3.2
 ```
 
 ## Values
@@ -85,7 +85,7 @@ cosign verify \
 | httpRoute.rules | list | `[{"matches":[{"path":{"type":"PathPrefix","value":"/"}}]}]` | HTTPRoute rules. |
 | image.digest | string | `""` | Optional immutable image digest. When set, the image renders as repository:tag@digest. |
 | image.pullPolicy | string | `"IfNotPresent"` | Image pull policy. |
-| image.repository | string | `"docker.io/mpepping/cyberchef"` | Container image repository. |
+| image.repository | string | `"ghcr.io/gchq/cyberchef"` | Container image repository. |
 | image.tag | string | `""` | Overrides the image tag whose default is the chart appVersion. |
 | imagePullSecrets | list | `[]` | Image pull secrets. |
 | ingress | object | `{"annotations":{},"className":"","enabled":false,"hosts":[{"host":"chart-example.local","paths":[{"path":"/","pathType":"ImplementationSpecific"}]}],"tls":[]}` | Ingress configuration. |
