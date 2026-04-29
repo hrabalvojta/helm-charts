@@ -3,28 +3,6 @@ entries:
   cyberchef:
   - apiVersion: v2
     appVersion: v11.0.0
-    created: "2026-04-29T18:34:10.458659869Z"
-    description: The Cyber Swiss Army Knife - a web app for encryption, encoding,
-      compression and data analysis
-    digest: ec556dcf068459d3a6c2c0351949e15b6ec131237a899ba34d487ca6523af477
-    home: https://github.com/hrabalvojta/helm-charts/tree/main/charts/cyberchef
-    icon: https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/cyberchef.svg
-    keywords:
-    - cyberchef
-    kubeVersion: '>=1.23.0-0'
-    maintainers:
-    - email: hrabalvojtech@gmail.com
-      name: Vojtech Hrabal
-      url: https://github.com/hrabalvojta
-    name: cyberchef
-    sources:
-    - https://github.com/gchq/CyberChef
-    type: application
-    urls:
-    - https://hrabalvojta.github.io/helm-charts/charts/cyberchef-0.4.0.tgz
-    version: 0.4.0
-  - apiVersion: v2
-    appVersion: v11.0.0
     created: "2026-04-29T18:34:10.458030309Z"
     description: The Cyber Swiss Army Knife - a web app for encryption, encoding,
       compression and data analysis
