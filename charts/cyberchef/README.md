@@ -66,8 +66,13 @@ cosign verify \
 |-----|------|---------|-------------|
 | affinity | object | `{}` |  |
 | autoscaling | object | `{"enabled":false,"maxReplicas":10,"minReplicas":1,"targetCPUUtilizationPercentage":80}` | HorizontalPodAutoscaler configuration. |
+| commonAnnotations | object | `{}` | Annotations applied to all rendered Kubernetes resources. |
+| commonLabels | object | `{}` | Labels applied to all rendered Kubernetes resources. |
 | config | object | `{"default_conf":"","nginx_conf":""}` | Optional overrides for the bundled nginx configuration files. |
 | containerPort | int | `8000` | Port exposed by the CyberChef container and nginx listener. |
+| defaultPodAntiAffinity | object | `{"enabled":true,"topologyKey":"kubernetes.io/hostname"}` | Default soft pod anti-affinity used when `affinity` is empty. |
+| deploymentAnnotations | object | `{}` | Deployment annotations. |
+| enableServiceLinks | bool | `false` | Enable Kubernetes service environment variable injection in pods. |
 | env | object | `{"TZ":"UTC"}` | Default environment variables for the CyberChef container. |
 | extraEnv | list | `[]` | Additional Kubernetes `env` entries appended to the CyberChef container. |
 | extraObjects | list | `[]` | Additional Kubernetes manifests rendered by this chart. |
@@ -79,12 +84,12 @@ cosign verify \
 | httpRoute.parentRefs | list | `[{"name":"gateway","sectionName":"http"}]` | Gateway parent references. |
 | httpRoute.rules | list | `[{"matches":[{"path":{"type":"PathPrefix","value":"/"}}]}]` | HTTPRoute rules. |
 | image.digest | string | `""` | Optional immutable image digest. When set, the image renders as repository:tag@digest. |
-| image.pullPolicy | string | `"Always"` | Image pull policy. |
+| image.pullPolicy | string | `"IfNotPresent"` | Image pull policy. |
 | image.repository | string | `"docker.io/mpepping/cyberchef"` | Container image repository. |
 | image.tag | string | `""` | Overrides the image tag whose default is the chart appVersion. |
 | imagePullSecrets | list | `[]` | Image pull secrets. |
 | ingress | object | `{"annotations":{},"className":"","enabled":false,"hosts":[{"host":"chart-example.local","paths":[{"path":"/","pathType":"ImplementationSpecific"}]}],"tls":[]}` | Ingress configuration. |
-| livenessProbe | object | `{"failureThreshold":6,"initialDelaySeconds":30,"periodSeconds":10,"tcpSocket":{"port":"http"},"timeoutSeconds":5}` | Liveness probe. |
+| livenessProbe | object | `{"failureThreshold":6,"httpGet":{"path":"/livez","port":"http"},"initialDelaySeconds":30,"periodSeconds":10,"timeoutSeconds":5}` | Liveness probe. |
 | nameOverride | string | `""` | Override the chart name. |
 | networkPolicy.egress | list | `[]` | Egress rules. Empty means deny all egress. |
 | networkPolicy.enabled | bool | `true` |  |
@@ -99,7 +104,7 @@ cosign verify \
 | podSecurityContext.runAsNonRoot | bool | `true` |  |
 | podSecurityContext.runAsUser | int | `10001` |  |
 | podSecurityContext.seccompProfile.type | string | `"RuntimeDefault"` |  |
-| readinessProbe | object | `{"failureThreshold":3,"httpGet":{"path":"/healthz","port":"http"},"initialDelaySeconds":5,"periodSeconds":10,"timeoutSeconds":2}` | Readiness probe. |
+| readinessProbe | object | `{"failureThreshold":3,"httpGet":{"path":"/readyz","port":"http"},"initialDelaySeconds":5,"periodSeconds":10,"timeoutSeconds":2}` | Readiness probe. |
 | replicaCount | int | `1` | Number of Deployment replicas when autoscaling is disabled. |
 | resources | object | `{"limits":{"cpu":"200m","ephemeral-storage":"256Mi","memory":"128Mi"},"requests":{"cpu":"10m","ephemeral-storage":"16Mi","memory":"16Mi"}}` | Container resource requests and limits. |
 | securityContext.allowPrivilegeEscalation | bool | `false` |  |
@@ -108,21 +113,20 @@ cosign verify \
 | securityContext.readOnlyRootFilesystem | bool | `true` |  |
 | service.annotations | object | `{}` | Service annotations. |
 | service.appProtocol | string | `"http"` | Optional appProtocol value for the service port. |
-| service.externalName | string | `""` | Required when `service.type=ExternalName`. |
 | service.loadBalancerIP | string | `""` | Optional LoadBalancer IP when supported by the cluster. |
 | service.loadBalancerSourceRanges | list | `[]` | Optional LoadBalancer source ranges. |
 | service.nodePort | string | `""` | Optional fixed nodePort when `service.type` is `NodePort` or `LoadBalancer`. |
 | service.port | int | `8000` | Service port. |
-| service.targetPort | string | `"http"` | Service target port. Defaults to the named container port. |
 | service.type | string | `"ClusterIP"` | Service type. |
 | serviceAccount.annotations | object | `{}` | Service account annotations. |
 | serviceAccount.automount | bool | `false` | Automatically mount service account API credentials. |
 | serviceAccount.create | bool | `true` | Create a service account. |
 | serviceAccount.name | string | `""` | Service account name. Generated when empty and `serviceAccount.create=true`. |
+| serviceLabels | object | `{}` | Service labels. |
 | strategy | object | `{"type":"RollingUpdate"}` | Deployment update strategy. |
-| test | object | `{"image":{"digest":"","pullPolicy":"Always","repository":"docker.io/library/busybox","tag":"1.37.0"},"resources":{"limits":{"cpu":"50m","ephemeral-storage":"16Mi","memory":"32Mi"},"requests":{"cpu":"10m","ephemeral-storage":"8Mi","memory":"16Mi"}}}` | Helm test pod configuration. |
+| test | object | `{"image":{"digest":"","pullPolicy":"IfNotPresent","repository":"docker.io/library/busybox","tag":"1.37.0"},"resources":{"limits":{"cpu":"50m","ephemeral-storage":"16Mi","memory":"32Mi"},"requests":{"cpu":"10m","ephemeral-storage":"8Mi","memory":"16Mi"}}}` | Helm test pod configuration. |
 | test.image.digest | string | `""` | Optional immutable Helm test image digest. |
-| test.image.pullPolicy | string | `"Always"` | Helm test image pull policy. |
+| test.image.pullPolicy | string | `"IfNotPresent"` | Helm test image pull policy. |
 | test.image.repository | string | `"docker.io/library/busybox"` | Helm test image repository. |
 | test.image.tag | string | `"1.37.0"` | Helm test image tag. |
 | test.resources | object | `{"limits":{"cpu":"50m","ephemeral-storage":"16Mi","memory":"32Mi"},"requests":{"cpu":"10m","ephemeral-storage":"8Mi","memory":"16Mi"}}` | Helm test pod resource requests and limits. |

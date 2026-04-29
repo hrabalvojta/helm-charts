@@ -7,7 +7,7 @@ image:
   # -- Container image repository.
   repository: docker.io/mpepping/cyberchef
   # -- Image pull policy.
-  pullPolicy: Always
+  pullPolicy: IfNotPresent
   # -- Overrides the image tag whose default is the chart appVersion.
   tag: ""
   # -- Optional immutable image digest. When set, the image renders as repository:tag@digest.
@@ -19,6 +19,11 @@ imagePullSecrets: []
 nameOverride: ""
 # -- Override the fully qualified app name.
 fullnameOverride: ""
+
+# -- Labels applied to all rendered Kubernetes resources.
+commonLabels: {}
+# -- Annotations applied to all rendered Kubernetes resources.
+commonAnnotations: {}
 
 serviceAccount:
   # -- Create a service account.
@@ -34,6 +39,12 @@ serviceAccount:
 podAnnotations: {}
 # -- Pod labels.
 podLabels: {}
+# -- Enable Kubernetes service environment variable injection in pods.
+enableServiceLinks: false
+# -- Deployment annotations.
+deploymentAnnotations: {}
+# -- Service labels.
+serviceLabels: {}
 
 podSecurityContext:
   runAsNonRoot: true
@@ -74,8 +85,6 @@ service:
   annotations: {}
   # -- Service port.
   port: 8000
-  # -- Service target port. Defaults to the named container port.
-  targetPort: http
   # -- Optional appProtocol value for the service port.
   appProtocol: http
   # -- Optional fixed nodePort when `service.type` is `NodePort` or `LoadBalancer`.
@@ -84,8 +93,6 @@ service:
   loadBalancerIP: ""
   # -- Optional LoadBalancer source ranges.
   loadBalancerSourceRanges: []
-  # -- Required when `service.type=ExternalName`.
-  externalName: ""
 
 networkPolicy:
   enabled: true
@@ -160,7 +167,8 @@ resources:
 
 # -- Liveness probe.
 livenessProbe:
-  tcpSocket:
+  httpGet:
+    path: /livez
     port: http
   failureThreshold: 6
   initialDelaySeconds: 30
@@ -169,7 +177,7 @@ livenessProbe:
 # -- Readiness probe.
 readinessProbe:
   httpGet:
-    path: /healthz
+    path: /readyz
     port: http
   failureThreshold: 3
   initialDelaySeconds: 5
@@ -220,6 +228,11 @@ nodeSelector: {}
 
 tolerations: []
 
+# -- Default soft pod anti-affinity used when `affinity` is empty.
+defaultPodAntiAffinity:
+  enabled: true
+  topologyKey: kubernetes.io/hostname
+
 affinity: {}
 
 # -- Pod topology spread constraints.
@@ -236,7 +249,7 @@ test:
     # -- Helm test image repository.
     repository: docker.io/library/busybox
     # -- Helm test image pull policy.
-    pullPolicy: Always
+    pullPolicy: IfNotPresent
     # -- Helm test image tag.
     tag: "1.37.0"
     # -- Optional immutable Helm test image digest.

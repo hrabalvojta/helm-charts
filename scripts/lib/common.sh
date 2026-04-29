@@ -383,7 +383,22 @@ sanitize_release_name() {
 }
 
 chart_default_scenarios() {
-	printf '%s\n' default ingress httproute autoscaling
+	printf '%s\n' default ingress httproute autoscaling digest custom-config disabled-empty
+}
+
+chart_negative_scenarios() {
+	printf '%s\n' invalid-autoscaling-range invalid-externalname invalid-digest
+}
+
+scenario_is_negative() {
+	local scenario="$1"
+	local negative_scenario
+
+	while IFS= read -r negative_scenario; do
+		[ "${scenario}" = "${negative_scenario}" ] && return 0
+	done < <(chart_negative_scenarios)
+
+	return 1
 }
 
 scenario_template_args() {
@@ -401,6 +416,24 @@ scenario_template_args() {
 		;;
 	autoscaling)
 		printf '%s\n' '--set' 'autoscaling.enabled=true' '--set' 'autoscaling.minReplicas=2' '--set' 'podDisruptionBudget.enabled=true' '--set' 'resources.requests.cpu=100m' '--set' 'resources.requests.memory=128Mi'
+		;;
+	digest)
+		printf '%s\n' '--set-string' 'image.digest=sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+		;;
+	custom-config)
+		printf '%s\n' '--set-string' 'config.default_conf=server { listen 8000; location ~ ^/(healthz|livez|readyz)$ { return 200 "ok"; } location / { try_files $uri /index.html; } }'
+		;;
+	disabled-empty)
+		printf '%s\n' '--set-json' 'ingress.hosts=[]' '--set-json' 'httpRoute.parentRefs=[]' '--set-json' 'httpRoute.hostnames=[]' '--set-json' 'httpRoute.rules=[]'
+		;;
+	invalid-autoscaling-range)
+		printf '%s\n' '--set' 'autoscaling.enabled=true' '--set' 'autoscaling.minReplicas=5' '--set' 'autoscaling.maxReplicas=3'
+		;;
+	invalid-externalname)
+		printf '%s\n' '--set' 'service.type=ExternalName'
+		;;
+	invalid-digest)
+		printf '%s\n' '--set-string' 'image.digest=sha256:abc'
 		;;
 	*)
 		die "Unsupported validation scenario: ${scenario}"

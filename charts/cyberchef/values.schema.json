@@ -9,9 +9,14 @@
     "imagePullSecrets",
     "nameOverride",
     "fullnameOverride",
+    "commonLabels",
+    "commonAnnotations",
     "serviceAccount",
     "podAnnotations",
     "podLabels",
+    "enableServiceLinks",
+    "deploymentAnnotations",
+    "serviceLabels",
     "podSecurityContext",
     "securityContext",
     "strategy",
@@ -33,6 +38,7 @@
     "extraObjects",
     "nodeSelector",
     "tolerations",
+    "defaultPodAntiAffinity",
     "affinity",
     "topologySpreadConstraints",
     "config",
@@ -106,6 +112,9 @@
     "probe": {
       "type": "object",
       "additionalProperties": false,
+      "required": [
+        "httpGet"
+      ],
       "properties": {
         "httpGet": {
           "type": "object",
@@ -140,55 +149,6 @@
             }
           }
         },
-        "exec": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "command"
-          ],
-          "properties": {
-            "command": {
-              "type": "array",
-              "minItems": 1,
-              "items": {
-                "type": "string",
-                "minLength": 1
-              }
-            }
-          }
-        },
-        "tcpSocket": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "port"
-          ],
-          "properties": {
-            "port": {
-              "$ref": "#/definitions/intOrString"
-            },
-            "host": {
-              "type": "string"
-            }
-          }
-        },
-        "grpc": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "port"
-          ],
-          "properties": {
-            "port": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 65535
-            },
-            "service": {
-              "type": "string"
-            }
-          }
-        },
         "initialDelaySeconds": {
           "type": "integer",
           "minimum": 0
@@ -213,29 +173,7 @@
           "type": "integer",
           "minimum": 1
         }
-      },
-      "anyOf": [
-        {
-          "required": [
-            "httpGet"
-          ]
-        },
-        {
-          "required": [
-            "exec"
-          ]
-        },
-        {
-          "required": [
-            "tcpSocket"
-          ]
-        },
-        {
-          "required": [
-            "grpc"
-          ]
-        }
-      ]
+      }
     },
     "resourceList": {
       "type": "object",
@@ -347,9 +285,6 @@
     "httpRouteRule": {
       "type": "object",
       "additionalProperties": true,
-      "required": [
-        "matches"
-      ],
       "properties": {
         "matches": {
           "type": "array",
@@ -429,6 +364,12 @@
     "fullnameOverride": {
       "type": "string"
     },
+    "commonLabels": {
+      "$ref": "#/definitions/stringMap"
+    },
+    "commonAnnotations": {
+      "$ref": "#/definitions/stringMap"
+    },
     "serviceAccount": {
       "type": "object",
       "additionalProperties": false,
@@ -457,6 +398,15 @@
       "$ref": "#/definitions/stringMap"
     },
     "podLabels": {
+      "$ref": "#/definitions/stringMap"
+    },
+    "enableServiceLinks": {
+      "type": "boolean"
+    },
+    "deploymentAnnotations": {
+      "$ref": "#/definitions/stringMap"
+    },
+    "serviceLabels": {
       "$ref": "#/definitions/stringMap"
     },
     "podSecurityContext": {
@@ -521,12 +471,10 @@
         "type",
         "annotations",
         "port",
-        "targetPort",
         "appProtocol",
         "nodePort",
         "loadBalancerIP",
-        "loadBalancerSourceRanges",
-        "externalName"
+        "loadBalancerSourceRanges"
       ],
       "properties": {
         "type": {
@@ -534,8 +482,7 @@
           "enum": [
             "ClusterIP",
             "NodePort",
-            "LoadBalancer",
-            "ExternalName"
+            "LoadBalancer"
           ]
         },
         "annotations": {
@@ -545,9 +492,6 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 65535
-        },
-        "targetPort": {
-          "$ref": "#/definitions/intOrString"
         },
         "appProtocol": {
           "type": "string"
@@ -564,9 +508,6 @@
             "type": "string",
             "minLength": 1
           }
-        },
-        "externalName": {
-          "type": "string"
         }
       }
     },
@@ -620,7 +561,6 @@
         },
         "hosts": {
           "type": "array",
-          "minItems": 1,
           "items": {
             "$ref": "#/definitions/ingressHost"
           }
@@ -652,14 +592,12 @@
         },
         "parentRefs": {
           "type": "array",
-          "minItems": 1,
           "items": {
             "$ref": "#/definitions/httpRouteParentRef"
           }
         },
         "hostnames": {
           "type": "array",
-          "minItems": 1,
           "items": {
             "type": "string",
             "minLength": 1
@@ -667,7 +605,6 @@
         },
         "rules": {
           "type": "array",
-          "minItems": 1,
           "items": {
             "$ref": "#/definitions/httpRouteRule"
           }
@@ -813,6 +750,23 @@
         "additionalProperties": true
       }
     },
+    "defaultPodAntiAffinity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "enabled",
+        "topologyKey"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "topologyKey": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
     "affinity": {
       "type": "object",
       "additionalProperties": true
@@ -899,29 +853,62 @@
     {
       "if": {
         "properties": {
-          "service": {
+          "ingress": {
             "properties": {
-              "type": {
-                "const": "ExternalName"
+              "enabled": {
+                "const": true
               }
             },
             "required": [
-              "type"
+              "enabled"
             ]
           }
         }
       },
       "then": {
         "properties": {
-          "service": {
+          "ingress": {
             "properties": {
-              "externalName": {
-                "type": "string",
-                "minLength": 1
+              "hosts": {
+                "minItems": 1
               }
             },
             "required": [
-              "externalName"
+              "hosts"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "httpRoute": {
+            "properties": {
+              "enabled": {
+                "const": true
+              }
+            },
+            "required": [
+              "enabled"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "httpRoute": {
+            "properties": {
+              "parentRefs": {
+                "minItems": 1
+              },
+              "rules": {
+                "minItems": 1
+              }
+            },
+            "required": [
+              "parentRefs",
+              "rules"
             ]
           }
         }

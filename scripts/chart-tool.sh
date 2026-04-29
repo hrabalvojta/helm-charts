@@ -22,7 +22,7 @@ Usage:
   scripts/chart-tool.sh version check --base <ref> --head <ref> [--allow-unpublished-reuse]
   scripts/chart-tool.sh charts audit [--charts-json <json> | <chart>...]
   scripts/chart-tool.sh charts docs-check [--charts-json <json> | <chart>...]
-  scripts/chart-tool.sh charts test --chart <chart> [--scenario <name>]
+  scripts/chart-tool.sh charts test --chart <chart> [--scenario <name>] [--server-dry-run]
   scripts/chart-tool.sh charts package --destination <dir> [--charts-json <json> | <chart>...]
   scripts/chart-tool.sh tools install <actionlint|gitleaks|helm-docs|kube-score|shfmt|yq> --version <version> --install-dir <dir>
   scripts/chart-tool.sh release publish [--all | --charts-json <json> | --base <ref> --head <ref>]
@@ -375,15 +375,37 @@ run_chart_quality_scenario() {
 		die "Rendered manifest is empty for ${chart_dir} scenario ${scenario}"
 	fi
 
-	kube-score score "${manifest_file}"
+	kube-score score --ignore-test container-image-pull-policy "${manifest_file}"
+	rm -f "${manifest_file}"
+}
+
+run_chart_negative_scenario() {
+	local chart_dir="$1"
+	local scenario="$2"
+
+	if render_chart_manifest "${chart_dir}" "${scenario}" true >/dev/null 2>&1; then
+		die "Expected ${chart_dir} scenario ${scenario} to fail rendering"
+	fi
+}
+
+run_chart_server_dry_run_scenario() {
+	local chart_dir="$1"
+	local scenario="$2"
+	local manifest_file
+
+	manifest_file="$(mktemp)"
+	render_chart_manifest "${chart_dir}" "${scenario}" false >"${manifest_file}"
+	kubectl apply --dry-run=server -f "${manifest_file}"
 	rm -f "${manifest_file}"
 }
 
 charts_test() {
 	local chart_dir=""
 	local scenario=""
+	local server_dry_run=false
 	local active_scenario
 	local -a scenarios=()
+	local -a negative_scenarios=()
 
 	while [ "$#" -gt 0 ]; do
 		case "$1" in
@@ -397,6 +419,10 @@ charts_test() {
 			scenario="$2"
 			shift 2
 			;;
+		--server-dry-run)
+			server_dry_run=true
+			shift
+			;;
 		*)
 			die "Unexpected argument for charts test: $1"
 			;;
@@ -405,12 +431,22 @@ charts_test() {
 
 	[ -n "${chart_dir}" ] || die "charts test requires --chart"
 	audit_chart "${chart_dir}"
-	require_command helm kube-score
 
-	if [ -n "${scenario}" ]; then
+	if [ -n "${scenario}" ] && scenario_is_negative "${scenario}"; then
+		negative_scenarios=("${scenario}")
+	elif [ -n "${scenario}" ]; then
 		scenarios=("${scenario}")
 	else
 		mapfile -t scenarios < <(chart_default_scenarios)
+		mapfile -t negative_scenarios < <(chart_negative_scenarios)
+	fi
+
+	require_command helm
+	if [ "${#scenarios[@]}" -gt 0 ]; then
+		require_command kube-score
+	fi
+	if [ "${server_dry_run}" = true ]; then
+		require_command kubectl
 	fi
 
 	(
@@ -422,6 +458,13 @@ charts_test() {
 	for active_scenario in "${scenarios[@]}"; do
 		run_chart_render_scenario "${chart_dir}" "${active_scenario}"
 		run_chart_quality_scenario "${chart_dir}" "${active_scenario}"
+		if [ "${server_dry_run}" = true ]; then
+			run_chart_server_dry_run_scenario "${chart_dir}" "${active_scenario}"
+		fi
+	done
+
+	for active_scenario in "${negative_scenarios[@]}"; do
+		run_chart_negative_scenario "${chart_dir}" "${active_scenario}"
 	done
 }
 

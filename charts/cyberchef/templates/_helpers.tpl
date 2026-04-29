@@ -40,6 +40,9 @@ helm.sh/chart: {{ include "cyberchef.chart" . }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- with .Values.commonLabels }}
+{{- printf "\n" }}{{ toYaml . }}
+{{- end }}
 {{- end }}
 
 {{/*
@@ -84,4 +87,66 @@ Helm test container image reference.
 */}}
 {{- define "cyberchef.testImage" -}}
 {{- include "cyberchef.imageReference" .Values.test.image }}
+{{- end }}
+
+{{/*
+Merged resource annotations. Resource-specific annotations override common annotations.
+*/}}
+{{- define "cyberchef.annotations" -}}
+{{- $annotations := dict -}}
+{{- with .root.Values.commonAnnotations }}
+{{- $annotations = mergeOverwrite $annotations . }}
+{{- end }}
+{{- with .annotations }}
+{{- $annotations = mergeOverwrite $annotations . }}
+{{- end }}
+{{- if $annotations }}
+annotations:
+  {{- toYaml $annotations | nindent 2 }}
+{{- end }}
+{{- end }}
+
+{{/*
+ConfigMap data for CyberChef nginx configuration.
+*/}}
+{{- define "cyberchef.configData" -}}
+{{- $config := .Values.config | default (dict) -}}
+default.conf: |
+  {{- if $config.default_conf }}
+  {{- $config.default_conf | trimSuffix "\n" | nindent 2 }}
+  {{- else }}
+  server {
+      listen {{ .Values.containerPort }};
+      listen [::]:{{ .Values.containerPort }};
+      server_name _;
+      root /usr/share/nginx/html;
+      index index.html;
+
+      add_header X-Content-Type-Options "nosniff" always;
+      add_header X-Frame-Options "SAMEORIGIN" always;
+      add_header Referrer-Policy "no-referrer" always;
+
+      location ~ ^/(healthz|livez|readyz)$ {
+          access_log off;
+          add_header Cache-Control "no-store" always;
+          return 200 "ok\n";
+      }
+
+      location ~* \.(?:css|js|mjs|png|jpg|jpeg|gif|ico|svg|woff2?)$ {
+          try_files $uri =404;
+          add_header Cache-Control "public, max-age=86400" always;
+      }
+
+      location / {
+          try_files $uri $uri/ /index.html;
+          add_header Cache-Control "no-cache" always;
+      }
+  }
+  {{- end }}
+nginx.conf: |
+  {{- if $config.nginx_conf }}
+  {{- $config.nginx_conf | trimSuffix "\n" | nindent 2 }}
+  {{- else }}
+  {{- .Files.Get "files/nginx.conf" | trimSuffix "\n" | nindent 2 }}
+  {{- end }}
 {{- end }}

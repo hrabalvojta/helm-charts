@@ -5,9 +5,8 @@ metadata:
   name: {{ include "cyberchef.fullname" . }}
   labels:
     {{- include "cyberchef.labels" . | nindent 4 }}
-  {{- with .Values.ingress.annotations }}
-  annotations:
-    {{- toYaml . | nindent 4 }}
+  {{- with include "cyberchef.annotations" (dict "root" . "annotations" .Values.ingress.annotations) }}
+  {{- trim . | nindent 2 }}
   {{- end }}
 spec:
   {{- with .Values.ingress.className }}

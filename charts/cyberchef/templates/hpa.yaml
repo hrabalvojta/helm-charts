@@ -2,12 +2,18 @@
 {{- if not (or .Values.autoscaling.targetCPUUtilizationPercentage .Values.autoscaling.targetMemoryUtilizationPercentage) }}
 {{- fail "autoscaling.enabled=true requires at least one of autoscaling.targetCPUUtilizationPercentage or autoscaling.targetMemoryUtilizationPercentage" }}
 {{- end }}
+{{- if gt (int .Values.autoscaling.minReplicas) (int .Values.autoscaling.maxReplicas) }}
+{{- fail "autoscaling.maxReplicas must be greater than or equal to autoscaling.minReplicas" }}
+{{- end }}
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: {{ include "cyberchef.fullname" . }}
   labels:
     {{- include "cyberchef.labels" . | nindent 4 }}
+  {{- with include "cyberchef.annotations" (dict "root" .) }}
+  {{- trim . | nindent 2 }}
+  {{- end }}
 spec:
   scaleTargetRef:
     apiVersion: apps/v1

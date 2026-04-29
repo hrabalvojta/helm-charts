@@ -5,6 +5,9 @@ metadata:
   name: {{ include "cyberchef.fullname" . }}
   labels:
     {{- include "cyberchef.labels" . | nindent 4 }}
+  {{- with include "cyberchef.annotations" (dict "root" .) }}
+  {{- trim . | nindent 2 }}
+  {{- end }}
 spec:
   maxUnavailable: {{ .Values.podDisruptionBudget.maxUnavailable }}
   selector:
