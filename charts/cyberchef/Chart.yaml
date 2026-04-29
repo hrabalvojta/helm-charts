@@ -9,8 +9,8 @@ sources:
 keywords:
   - cyberchef
 type: application
-version: 0.3.2
-appVersion: "v11.0.0"  # renovate: datasource=docker depName=docker.io/mpepping/cyberchef
+version: 0.3.3
+appVersion: "11.0.0"  # renovate: datasource=docker depName=ghcr.io/gchq/cyberchef
 icon: https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/cyberchef.svg
 maintainers:
   - name: Vojtech Hrabal
