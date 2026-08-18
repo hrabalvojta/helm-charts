@@ -251,7 +251,7 @@ test:
     # -- Helm test image pull policy.
     pullPolicy: IfNotPresent
     # -- Helm test image tag.
-    tag: "1.37.0"
+    tag: "1.38.0"
     # -- Optional immutable Helm test image digest.
     digest: ""
   # -- Helm test pod resource requests and limits.
