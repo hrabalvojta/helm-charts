@@ -1,6 +1,6 @@
 # cyberchef
 
-![Version: 0.3.4](https://img.shields.io/badge/Version-0.3.4-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 11.0.0](https://img.shields.io/badge/AppVersion-11.0.0-informational?style=flat-square)
+![Version: 0.3.4](https://img.shields.io/badge/Version-0.3.4-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 11.5.0](https://img.shields.io/badge/AppVersion-11.5.0-informational?style=flat-square)
 
 The Cyber Swiss Army Knife - a web app for encryption, encoding, compression and data analysis
 
@@ -124,11 +124,11 @@ cosign verify \
 | serviceAccount.name | string | `""` | Service account name. Generated when empty and `serviceAccount.create=true`. |
 | serviceLabels | object | `{}` | Service labels. |
 | strategy | object | `{"type":"RollingUpdate"}` | Deployment update strategy. |
-| test | object | `{"image":{"digest":"","pullPolicy":"IfNotPresent","repository":"docker.io/library/busybox","tag":"1.37.0"},"resources":{"limits":{"cpu":"50m","ephemeral-storage":"16Mi","memory":"32Mi"},"requests":{"cpu":"10m","ephemeral-storage":"8Mi","memory":"16Mi"}}}` | Helm test pod configuration. |
+| test | object | `{"image":{"digest":"","pullPolicy":"IfNotPresent","repository":"docker.io/library/busybox","tag":"1.38.0"},"resources":{"limits":{"cpu":"50m","ephemeral-storage":"16Mi","memory":"32Mi"},"requests":{"cpu":"10m","ephemeral-storage":"8Mi","memory":"16Mi"}}}` | Helm test pod configuration. |
 | test.image.digest | string | `""` | Optional immutable Helm test image digest. |
 | test.image.pullPolicy | string | `"IfNotPresent"` | Helm test image pull policy. |
 | test.image.repository | string | `"docker.io/library/busybox"` | Helm test image repository. |
-| test.image.tag | string | `"1.37.0"` | Helm test image tag. |
+| test.image.tag | string | `"1.38.0"` | Helm test image tag. |
 | test.resources | object | `{"limits":{"cpu":"50m","ephemeral-storage":"16Mi","memory":"32Mi"},"requests":{"cpu":"10m","ephemeral-storage":"8Mi","memory":"16Mi"}}` | Helm test pod resource requests and limits. |
 | tmpVolume | object | `{"sizeLimit":"64Mi"}` | Settings for the writable nginx temporary directory. |
 | tmpVolume.sizeLimit | string | `"64Mi"` | Optional size limit for the `/tmp` emptyDir. |
