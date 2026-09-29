@@ -421,7 +421,7 @@ scenario_template_args() {
 		printf '%s\n' '--set-string' 'image.digest=sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
 		;;
 	custom-config)
-		printf '%s\n' '--set-string' "config.default_conf=server { listen 8000; location ~ ^/(healthz|livez|readyz)$ { return 200 'ok'; } location / { try_files $uri /index.html; } }"
+    printf '%s\n' '--set-string' "config.default_conf=server { listen 8000; location ~ ^/(healthz|livez|readyz)$ { return 200 'ok'; } location / { try_files \$uri /index.html; } }"
 		;;
 	disabled-empty)
 		printf '%s\n' '--set-json' 'ingress.hosts=[]' '--set-json' 'httpRoute.parentRefs=[]' '--set-json' 'httpRoute.hostnames=[]' '--set-json' 'httpRoute.rules=[]'
