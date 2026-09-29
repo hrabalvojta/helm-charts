@@ -1,6 +1,6 @@
 # cyberchef
 
-![Version: 0.3.3](https://img.shields.io/badge/Version-0.3.3-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 11.0.0](https://img.shields.io/badge/AppVersion-11.0.0-informational?style=flat-square)
+![Version: 0.3.4](https://img.shields.io/badge/Version-0.3.4-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 11.5.0](https://img.shields.io/badge/AppVersion-11.5.0-informational?style=flat-square)
 
 The Cyber Swiss Army Knife - a web app for encryption, encoding, compression and data analysis
 
@@ -44,20 +44,20 @@ Add the HV helm charts repository and install chart with the release name my-cyb
 
 ```bash
 helm repo add hv-charts https://hrabalvojta.github.io/helm-charts
-helm install my-cyberchef hv-charts/cyberchef --version 0.3.3
+helm install my-cyberchef hv-charts/cyberchef --version 0.3.4
 ```
 
 Or alternatively you can use oci:
 
 ```bash
-helm install my-cyberchef oci://ghcr.io/hrabalvojta/helm-charts/cyberchef --version 0.3.3
+helm install my-cyberchef oci://ghcr.io/hrabalvojta/helm-charts/cyberchef --version 0.3.4
 ```
 
 ```bash
 cosign verify \
   --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
   --certificate-identity-regexp='^https://github.com/hrabalvojta/helm-charts/.github/workflows/release.yaml@.+$' \
-  ghcr.io/hrabalvojta/helm-charts/cyberchef:0.3.3
+  ghcr.io/hrabalvojta/helm-charts/cyberchef:0.3.4
 ```
 
 ## Values
@@ -124,11 +124,11 @@ cosign verify \
 | serviceAccount.name | string | `""` | Service account name. Generated when empty and `serviceAccount.create=true`. |
 | serviceLabels | object | `{}` | Service labels. |
 | strategy | object | `{"type":"RollingUpdate"}` | Deployment update strategy. |
-| test | object | `{"image":{"digest":"","pullPolicy":"IfNotPresent","repository":"docker.io/library/busybox","tag":"1.37.0"},"resources":{"limits":{"cpu":"50m","ephemeral-storage":"16Mi","memory":"32Mi"},"requests":{"cpu":"10m","ephemeral-storage":"8Mi","memory":"16Mi"}}}` | Helm test pod configuration. |
+| test | object | `{"image":{"digest":"","pullPolicy":"IfNotPresent","repository":"docker.io/library/busybox","tag":"1.38.0"},"resources":{"limits":{"cpu":"50m","ephemeral-storage":"16Mi","memory":"32Mi"},"requests":{"cpu":"10m","ephemeral-storage":"8Mi","memory":"16Mi"}}}` | Helm test pod configuration. |
 | test.image.digest | string | `""` | Optional immutable Helm test image digest. |
 | test.image.pullPolicy | string | `"IfNotPresent"` | Helm test image pull policy. |
 | test.image.repository | string | `"docker.io/library/busybox"` | Helm test image repository. |
-| test.image.tag | string | `"1.37.0"` | Helm test image tag. |
+| test.image.tag | string | `"1.38.0"` | Helm test image tag. |
 | test.resources | object | `{"limits":{"cpu":"50m","ephemeral-storage":"16Mi","memory":"32Mi"},"requests":{"cpu":"10m","ephemeral-storage":"8Mi","memory":"16Mi"}}` | Helm test pod resource requests and limits. |
 | tmpVolume | object | `{"sizeLimit":"64Mi"}` | Settings for the writable nginx temporary directory. |
 | tmpVolume.sizeLimit | string | `"64Mi"` | Optional size limit for the `/tmp` emptyDir. |
